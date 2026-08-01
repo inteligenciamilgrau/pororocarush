@@ -45,6 +45,17 @@ function km1(m) {
   return (Math.round(v * 10) / 10).toFixed(1).replace('.', ',');
 }
 
+/**
+ * Short range readout, pt-BR: "340 M" close in, "1,2 KM" far out.
+ * Quantised above 100 m so the label does not churn once per frame.
+ */
+function range(m) {
+  const v = Math.max(0, num(m, 0));
+  if (v >= 950) return `${km1(v)} KM`;
+  if (v >= 100) return `${Math.round(v / 5) * 5} M`;
+  return `${Math.round(v)} M`;
+}
+
 const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
 // Compass tape: 252 reference px per 45° cardinal step. That is the period the
@@ -61,8 +72,49 @@ const MAP = {
   size: 225,
   cx: 112.5,
   py: 162,          // the player sits low, like the concept art
-  ribbon: 17,       // ribbon width, reference px
+  ribbon: 21,       // ribbon width, reference px
   lat: 1.85,        // lateral exaggeration, px per metre (strip-map styling)
+  // The ribbon stands for the *navigable corridor*, not the full bank-to-bank
+  // width: normalising a ±60 m buoy course against a 170 m half-river squeezed
+  // the whole serpentine into two pixels and the course read as a straight line.
+  corridor: 90,
+};
+
+/**
+ * Corridor offset (in corridor half-widths) -> ribbon pixels. Soft, not clamped:
+ * a hard clamp made every wide position identical, so a course that had wandered
+ * outside the corridor stopped saying which side of you it was on. Bounded at
+ * ~1.35, which is the ribbon's own edge.
+ */
+const laneCurve = (u) => u / Math.sqrt(1 + 0.55 * u * u);
+
+// Off-screen gate indicator. The wedge is pinned to an ellipse inset from the
+// frame; the vertical squash and the side-dependent bias keep it out of the two
+// blocks that live on the middle of each edge (score/combo on the left,
+// objective/minimap on the right) without ever lying about the direction — the
+// anchor moves, the rotation is always the true screen-space bearing.
+const ARROW = {
+  insetX: 96,      // reference px from the left/right frame edge
+  insetY: 150,     // reference px from the top/bottom frame edge
+  squashY: 0.55,   // vertical squash applied to the anchor ray only
+  biasMid: 26,     // reference px of downward bias at dead ahead …
+  biasSide: 62,    // … ±this much depending on which side it lands on
+  // Keep-out bands, reference px: the middle of each edge already belongs to
+  // PONTUAÇÃO/COMBO on the left and OBJETIVO/minimapa on the right.
+  bandL: [378, 514],
+  bandR: [514, 616],
+  labelGap: 52,    // reference px the distance label sits inward of the wedge
+  showAt: 0.60,    // |ndc.x| that brings the arrow in …
+  hideAt: 0.44,    // … and the tighter one that sends it away (hysteresis)
+  nearHide: 6,     // metres: you are already in the gate, drop the arrow
+};
+
+// Minimap gate glyph palette, keyed by state.
+const GATE_LOOK = {
+  done: { buoy: '#f5c033', edge: 'rgba(28,15,4,.85)', bar: 'rgba(245,192,51,.85)', r: 2.9 },
+  next: { buoy: '#ffd24a', edge: '#fff6de', bar: 'rgba(255,210,74,.95)', r: 3.4 },
+  todo: { buoy: 'rgba(253,246,234,.30)', edge: 'rgba(253,246,234,.95)', bar: 'rgba(253,246,234,.55)', r: 3.0 },
+  miss: { buoy: '#7d2412', edge: 'rgba(28,10,4,.8)', bar: 'rgba(176,58,28,.5)', r: 2.7 },
 };
 
 const WIPEOUT_TEXT = {
@@ -159,6 +211,21 @@ function gaugeSVG() {
 </svg>`;
 }
 
+/** Off-screen indicator wedge. Points at +X (screen right) when unrotated. */
+function gateArrowSVG() {
+  return `<svg viewBox="0 0 72 56" aria-hidden="true">
+  <defs>
+    <linearGradient id="prGateA" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffe04f"/><stop offset=".5" stop-color="#ffab1c"/>
+      <stop offset="1" stop-color="#ff6f11"/>
+    </linearGradient>
+  </defs>
+  <path d="M7 5.5 L67 28 L7 50.5 L21 28 Z" fill="url(#prGateA)"
+        stroke="#2a1206" stroke-width="5.4" stroke-linejoin="round" paint-order="stroke"/>
+  <path d="M16 14 L49 26.4 L16 22 Z" fill="#fff3c8" opacity=".55"/>
+</svg>`;
+}
+
 function compassTapeHTML() {
   let html = '';
   // baseline rule + fine ticks (the mask in hud.css breaks it around each label)
@@ -229,6 +296,20 @@ export class HUD {
     this._riverTries = 0;
     this._riverProbeAt = -99;
 
+    // --- gates (world/gates.js) — every one of these degrades to "absent" ---
+    this._gates = null;         // the gates module, once it shows up on the ctx
+    this._cam = null;           // three camera, for the off-screen indicator
+    this._ctxTries = 0;
+    this._ctxProbeAt = -99;
+    this._gateNext = null;      // last gates.next()
+    this._gateList = null;      // normalised gates.all() snapshot
+    this._gatePollAcc = 99;
+    this._gateTotal = this.total;
+    this._gateArrowA = 0;       // smoothed indicator alpha
+    this._gateArrowOn = false;  // hysteresis latch
+    this._gatePassAt = -99;
+    this._gateMissAt = -99;
+
     // fallback meander, mirroring world/river.js so the minimap traces the
     // channel the player is actually in even when ctx.river is unreachable.
     this._buildFallbackRiver();
@@ -283,6 +364,10 @@ export class HUD {
   <div class="pr-cp-banner"><span>CHECKPOINT</span></div>
   <div class="pr-big pr-cp-count">1<i>/</i>${this.total}</div>
   <div class="pr-cp-dist">0,0 KM</div>
+  <div class="pr-cp-gate">
+    <span class="pr-cpg-lab">PORTAL</span><span class="pr-cpg-n">1/${this.total}</span>
+    <span class="pr-cpg-dot"></span><span class="pr-cpg-d">0 M</span>
+  </div>
 </div>
 
 <div class="pr-speed">
@@ -311,6 +396,12 @@ export class HUD {
 
 <div class="pr-banner"><div class="pr-banner-name"></div><div class="pr-banner-pts"></div></div>
 <div class="pr-flash"></div>
+
+<div class="pr-gate-arrow">
+  <div class="pr-ga-wedge">${gateArrowSVG()}</div>
+  <div class="pr-ga-dist">0 M</div>
+</div>
+
 <div class="pr-finish">PERCURSO CONCLUÍDO</div>`;
 
     root.appendChild(el);
@@ -326,6 +417,11 @@ export class HUD {
     this.cpEl = q('.pr-cp');
     this.cpCount = q('.pr-cp-count');
     this.cpDist = q('.pr-cp-dist');
+    this.cpGateN = q('.pr-cpg-n');
+    this.cpGateD = q('.pr-cpg-d');
+    this.gateArrow = q('.pr-gate-arrow');
+    this.gateWedge = q('.pr-ga-wedge');
+    this.gateDist = q('.pr-ga-dist');
     this.nSpeed = q('.pr-speed-n');
     this.gaugeFill = q('.prGaugeFill');
     this.gaugeTip = q('.prGaugeTip');
@@ -358,6 +454,28 @@ export class HUD {
       this._cpHitAt = this._now();
       this._show(`CHECKPOINT ${i}/${t}`, 0, 'pr-good', 1.5, 2);
       this._doFlash('rgba(255,208,90,.55)', 0.5, 0.85);
+    });
+
+    // --- percurso de boias ------------------------------------------------
+    on('gate:pass', (p) => {
+      const i = Math.max(1, Math.round(num(p && p.index, 1)));
+      const tot = Math.max(i, Math.round(num(p && p.total, this._gateTotal)));
+      this._gateTotal = tot;
+      this._gatePassAt = this._now();
+      if (this._gatePerfect(p)) {
+        this._show('PORTAL PERFEITO!', 0, 'pr-good', 1.4, 2);
+        this._doFlash('rgba(255,232,160,.55)', 0.42, 0.8);
+      } else {
+        this._show(`PORTAL ${i}/${tot}`, 0, '', 1.1, 2);
+        this._doFlash('rgba(255,196,60,.45)', 0.32, 0.55);
+      }
+    });
+
+    on('gate:miss', (p) => {
+      const i = Math.max(0, Math.round(num(p && p.index, 0)));
+      this._gateMissAt = this._now();
+      this._show(i > 0 ? `PORTAL ${i} PERDIDO` : 'PORTAL PERDIDO', 0, 'pr-bad', 1.2, 2);
+      this._doFlash('rgba(232,70,24,.55)', 0.4, 0.75);
     });
 
     on('race:finish', () => {
@@ -422,16 +540,46 @@ export class HUD {
     return Math.max(20, num(this.worldCfg.riverWidth, 340) * 0.5);
   }
 
-  /** world/river.js publishes itself on ctx.river; grab it if the boot got that far. */
-  _probeRiver(t) {
-    if (this._river || this._riverTries > 8) return;
-    if (t - this._riverProbeAt < 0.75) return;
+  /**
+   * The modules the HUD only *reads* publish themselves on the shared ctx
+   * (river.js does `ctx.river = this`, gates.js is expected to do the same).
+   * The HUD is built before some of them, so poll instead of assuming.
+   */
+  _probeCtx(t) {
+    const needRiver = !this._river && this._riverTries <= 8;
+    const needGates = !this._gates && this._ctxTries <= 24;
+    const needCam = !this._cam && this._ctxTries <= 24;
+    if (!needRiver && !needGates && !needCam) return;
+    if (t - this._ctxProbeAt < 0.75) return;
+    this._ctxProbeAt = t;
     this._riverProbeAt = t;
-    this._riverTries++;
+    this._ctxTries++;
+
+    let ctx = null;
     try {
-      const r = (typeof window !== 'undefined' && window.PR && window.PR.ctx) ? window.PR.ctx.river : null;
-      if (r && typeof r.centerX === 'function' && Number.isFinite(r.centerX(0))) this._river = r;
-    } catch (_) { this._river = null; }
+      ctx = (typeof window !== 'undefined' && window.PR) ? (window.PR.ctx || window.PR) : null;
+    } catch (_) { ctx = null; }
+    if (!ctx) return;
+
+    if (needRiver) {
+      this._riverTries++;
+      try {
+        const r = ctx.river;
+        if (r && typeof r.centerX === 'function' && Number.isFinite(r.centerX(0))) this._river = r;
+      } catch (_) { this._river = null; }
+    }
+    if (needGates) {
+      try {
+        const g = ctx.gates;
+        if (g && typeof g.next === 'function') this._gates = g;
+      } catch (_) { this._gates = null; }
+    }
+    if (needCam) {
+      try {
+        const c = ctx.camera;
+        if (c && c.position && c.quaternion && Number.isFinite(num(c.fov, NaN))) this._cam = c;
+      } catch (_) { this._cam = null; }
+    }
   }
 
   // ------------------------------------------------------------------ misc
@@ -560,6 +708,234 @@ export class HUD {
     this._style('fop', node, 'opacity', a.toFixed(3));
   }
 
+  // =============================================================== portais ==
+  // Everything below no-ops when world/gates.js is absent: no node is written,
+  // no class is set, and the concept-art HUD keeps working exactly as before.
+
+  /** `margem` may be metres of clearance or a 0..1 fraction; small = threaded. */
+  _gatePerfect(p) {
+    const m = Math.abs(num(p && (p.margem !== undefined ? p.margem : p.margin), NaN));
+    if (!Number.isFinite(m)) return false;
+    const w = num(p && p.width, NaN);
+    const ref = (Number.isFinite(w) && w > 2) ? w * 0.5 : 1;
+    return m <= ref * 0.25;
+  }
+
+  /** Copy gates.all() into a shape we own, so a neighbour recycling its array
+   *  cannot make the minimap flicker. Sorted along the river. */
+  _readGates(g) {
+    let raw = null;
+    try { raw = typeof g.all === 'function' ? g.all() : null; } catch (_) { raw = null; }
+    if (!raw) return null;
+    const src = Array.isArray(raw)
+      ? raw
+      : (typeof raw.length === 'number' ? Array.prototype.slice.call(raw) : null);
+    if (!src || !src.length) return null;
+
+    const out = [];
+    for (let i = 0; i < src.length && out.length < 64; i++) {
+      const e = src[i];
+      if (!e || typeof e !== 'object') continue;
+      const x = num(e.x, NaN), z = num(e.z, NaN);
+      if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
+      const idx = Math.round(num(e.index, out.length + 1));
+      if (idx > this._gateTotal) this._gateTotal = idx;
+      out.push({ i: idx, x, z, w: num(e.width, NaN), passed: !!e.passed, missed: !!e.missed });
+    }
+    if (!out.length) return null;
+    out.sort((a, b) => a.z - b.z);
+    return out;
+  }
+
+  /**
+   * World (x,z) -> normalised device coords, using the live camera basis.
+   * Reads camera.position/quaternion directly: the renderer's matrixWorldInverse
+   * is a frame stale during play and *many* frames stale under capture.js' seek,
+   * which would leave the indicator pointing at where the camera used to be.
+   */
+  _project(x, z) {
+    const p = this.state.player || {};
+    const y = num(p.y, 0) + 1.4;      // roughly buoy-top height
+    const cam = this._cam;
+
+    if (cam) {
+      const c = cam.position, q = cam.quaternion;
+      const qx = num(q.x, 0), qy = num(q.y, 0), qz = num(q.z, 0), qw = num(q.w, 1);
+      const vx = x - num(c.x, 0), vy = y - num(c.y, 0), vz = z - num(c.z, 0);
+      // columns of the quaternion's rotation matrix = camera right / up / back
+      const rx = 1 - 2 * (qy * qy + qz * qz), ry = 2 * (qx * qy + qz * qw), rz = 2 * (qx * qz - qy * qw);
+      const ux = 2 * (qx * qy - qz * qw), uy = 1 - 2 * (qx * qx + qz * qz), uz = 2 * (qy * qz + qx * qw);
+      const bx = 2 * (qx * qz + qy * qw), by = 2 * (qy * qz - qx * qw), bz = 1 - 2 * (qx * qx + qy * qy);
+      const sx = vx * rx + vy * ry + vz * rz;
+      const sy = vx * ux + vy * uy + vz * uz;
+      const depth = -(vx * bx + vy * by + vz * bz);        // three cameras look down -Z
+      const fov = num(cam.fov, num(this.config.render && this.config.render.fov, 58));
+      const asp = num(cam.aspect, 0) > 0.2 ? cam.aspect : this._aspect();
+      const tanH = Math.tan(clamp(fov, 5, 175) * Math.PI / 360);
+      const dd = Math.max(0.05, Math.abs(depth));
+      const nx = (sx / dd) / Math.max(1e-4, tanH * asp);
+      const ny = (sy / dd) / Math.max(1e-4, tanH);
+      if (Number.isFinite(nx) && Number.isFinite(ny)) return { nx, ny, ahead: depth > 0.05 };
+    }
+
+    // No camera yet: fall back to the heading. +psi rotates toward +X, and world
+    // +X falls on the LEFT of the screen, hence the minus.
+    const heading = num(p.heading, 0);
+    let rel = Math.atan2(x - num(p.x, 0), z - num(p.z, 0)) - heading;
+    rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+    const tanH = Math.tan(num(this.config.render && this.config.render.fov, 58) * Math.PI / 360);
+    const nx = -Math.tan(clamp(rel, -1.4, 1.4)) / Math.max(1e-4, tanH * this._aspect());
+    return { nx, ny: -0.12, ahead: Math.abs(rel) < 1.45 };
+  }
+
+  _aspect() {
+    const w = (typeof window !== 'undefined' && window.innerWidth) || CONFIG.render.width;
+    const h = (typeof window !== 'undefined' && window.innerHeight) || CONFIG.render.height;
+    return h > 0 ? w / h : 16 / 9;
+  }
+
+  _stepGates(d, t) {
+    const g = this._gates;
+    const has = !!g;
+    if (this._cache.gcls !== has && this.el) {
+      this._cache.gcls = has;
+      this.el.classList.toggle('pr-gates', has);
+    }
+    if (!has) { this._gateNext = null; this._gateList = null; return; }
+
+    // --- next gate -----------------------------------------------------
+    let nx = null;
+    try { nx = typeof g.next === 'function' ? g.next() : null; } catch (_) { nx = null; }
+    if (!nx || typeof nx !== 'object') nx = null;
+
+    const p = this.state.player || {};
+    const plx = num(p.x, 0), plz = num(p.z, 0);
+    let gx = NaN, gz = NaN, dist = NaN;
+    if (nx) {
+      gx = num(nx.x, NaN);
+      gz = num(nx.z, NaN);
+      if (Number.isFinite(gx) && Number.isFinite(gz)) dist = Math.hypot(gx - plx, gz - plz);
+      if (!Number.isFinite(dist) && typeof g.bearingTo === 'function') {
+        try {
+          const b = g.bearingTo(plx, plz);
+          if (b && Number.isFinite(b.dist)) {
+            dist = Math.max(0, b.dist);
+            if (Number.isFinite(b.angle)) {
+              gx = plx + Math.sin(b.angle) * dist;
+              gz = plz + Math.cos(b.angle) * dist;
+            }
+          }
+        } catch (_) { /* a broken neighbour just costs us the readout */ }
+      }
+      const idx = Math.round(num(nx.index, 0));
+      if (idx > this._gateTotal) this._gateTotal = idx;
+    }
+    this._gateNext = nx && Number.isFinite(gx) && Number.isFinite(gz)
+      ? { i: Math.round(num(nx.index, 0)), x: gx, z: gz, dist }
+      : null;
+
+    // --- active gates, polled at the minimap's own rate -----------------
+    this._gatePollAcc += d;
+    if (this._gatePollAcc >= 0.1) { this._gatePollAcc = 0; this._gateList = this._readGates(g); }
+
+    // --- the CHECKPOINT block gains a "PORTAL n/12 · 340 M" line --------
+    const live = !!this._gateNext && !(this.state.race || {}).finished;
+    if (this._cache.gon !== live && this.el) {
+      this._cache.gon = live;
+      this.el.classList.toggle('pr-gate-on', live);
+    }
+    if (live) {
+      const tot = Math.max(1, Math.round(this._gateTotal));
+      const idx = clamp(this._gateNext.i || 1, 1, tot);
+      this._set('gn', this.cpGateN, `${idx}/${tot}`);
+      this._set('gd', this.cpGateD, range(this._gateNext.dist));
+    }
+
+    // pass / miss pulse on that same line
+    const pulse = (t - this._gatePassAt) < 0.32 ? 'pr-gpass'
+      : ((t - this._gateMissAt) < 0.32 ? 'pr-gmiss' : '');
+    if (this._cache.gpulse !== pulse && this.cpEl) {
+      this.cpEl.classList.remove('pr-gpass', 'pr-gmiss');
+      if (pulse) this.cpEl.classList.add(pulse);
+      this._cache.gpulse = pulse;
+    }
+
+    this._stepGateArrow(d, t, live);
+  }
+
+  /** The edge indicator: shown only while the gate is not comfortably framed. */
+  _stepGateArrow(d, t, live) {
+    const node = this.gateArrow;
+    if (!node) return;
+
+    const s = this._s || 1;
+    const W = (typeof window !== 'undefined' && window.innerWidth) || CONFIG.render.width;
+    const H = (typeof window !== 'undefined' && window.innerHeight) || CONFIG.render.height;
+    const cx = W * 0.5, cy = H * 0.5;
+
+    let want = 0, ax = cx, ay = cy, ang = 0, dirX = 1, dirY = 0;
+    const gate = this._gateNext;
+
+    if (live && gate && !(Number.isFinite(gate.dist) && gate.dist < ARROW.nearHide)) {
+      const pr = this._project(gate.x, gate.z);
+      const lim = this._gateArrowOn ? ARROW.hideAt : ARROW.showAt;
+      const framed = pr.ahead && Math.abs(pr.nx) <= lim && Math.abs(pr.ny) <= 0.85;
+      this._gateArrowOn = !framed;
+      want = framed ? 0 : 1;
+
+      // Screen-space delta from the middle of the frame. Behind the camera the
+      // projection mirrors, so flip it — the wedge must point back, not forward.
+      let dx = pr.nx * cx, dy = -pr.ny * cy;
+      if (!pr.ahead) { dx = -dx; dy = -dy; }
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-3) { dx = 1; dy = 0; } else { dx /= len; dy /= len; }
+      ang = Math.atan2(dy, dx);
+      dirX = dx; dirY = dy;
+
+      // Pin it on an ellipse inset from the frame, with the vertical squashed so
+      // the wedge hugs the sides instead of parking over the centre blocks.
+      const rx = Math.max(40, W * 0.5 - ARROW.insetX * s);
+      const ry = Math.max(40, H * 0.5 - ARROW.insetY * s);
+      const ex = dx, ey = dy * ARROW.squashY;
+      const k = 1 / Math.max(1e-4, Math.hypot(ex / rx, ey / ry));
+      const side = clamp((ex * k) / rx, -1, 1);
+      ax = cx + ex * k;
+      ay = cy + ey * k + (ARROW.biasMid + ARROW.biasSide * side) * s;
+
+      // Once the wedge is genuinely pinned to a side, fade in that side's
+      // keep-out band so it never lands on top of a HUD block.
+      const w = clamp((Math.abs(side) - 0.3) / 0.45, 0, 1);
+      const band = side > 0 ? ARROW.bandR : ARROW.bandL;
+      const hRef = H / s;
+      const lo = 130 + (band[0] - 130) * w;
+      const hi = (hRef - 150) + (band[1] - (hRef - 150)) * w;
+      ay = clamp(ay / s, Math.min(lo, hi), Math.max(lo, hi)) * s;
+    } else {
+      this._gateArrowOn = false;
+    }
+
+    const k = d > 0 ? 1 - Math.exp(-d / 0.1) : 1;
+    this._gateArrowA += (want - this._gateArrowA) * k;
+    if (!Number.isFinite(this._gateArrowA)) this._gateArrowA = want;
+    const a = clamp(this._gateArrowA, 0, 1);
+
+    this._style('gaop', node, 'opacity', (Math.round(a * 50) / 50).toFixed(2));
+    if (a < 0.01) return;
+
+    this._style('gax', node, '--gx', `${(Math.round(ax * 2) / 2).toFixed(1)}px`);
+    this._style('gay', node, '--gy', `${(Math.round(ay * 2) / 2).toFixed(1)}px`);
+
+    const deg = Math.round(ang * 1800 / Math.PI) / 10;
+    this._style('gaa', this.gateWedge, '--ga', `${deg}deg`);
+    const beat = 1 + 0.055 * Math.sin(t * 6.3);
+    this._style('gas', this.gateWedge, '--gs', beat.toFixed(3));
+
+    // the readout rides inward of the wedge, upright, so it never reads mirrored
+    this._style('gadx', this.gateDist, '--gdx', `${(-dirX * ARROW.labelGap * s).toFixed(1)}px`);
+    this._style('gady', this.gateDist, '--gdy', `${(-dirY * ARROW.labelGap * s).toFixed(1)}px`);
+    if (gate) this._set('gadt', this.gateDist, range(gate.dist));
+  }
+
   // ------------------------------------------------------------------ step
 
   step(dt) {
@@ -569,7 +945,7 @@ export class HUD {
     const t = this._now();
 
     this._syncScale(false);
-    this._probeRiver(t);
+    this._probeCtx(t);
 
     const player = st.player || {};
     const score = st.score || {};
@@ -653,6 +1029,9 @@ export class HUD {
       }
     }
 
+    // -------------------------------------------------------------- portais
+    this._stepGates(d, t);
+
     // --------------------------------------------------------------- banner
     this._pollTrickBanner(t);
     this._stepBanner(t);
@@ -698,11 +1077,21 @@ export class HUD {
     const heading = num(player.heading, 0);
 
     // Strip map: the channel *shape* is exaggerated so the meander reads at this
-    // zoom, but the player's position across the channel is normalised to the
-    // drawn ribbon — the arrow must always sit in the water, never beside it.
-    const lane = clamp((plx - cx0) / this._halfWidth(pz), -1, 1) * (MAP.ribbon * 0.5 - 2.5);
-    const mx = (u) => R - lane + (this._centerX(pz + u) - cx0) * MAP.lat;
-    const my = (u) => MAP.py - u * this.mapAlong;
+    // zoom, but a position across the channel is normalised to the drawn ribbon —
+    // the arrow must always sit in the water, never beside it.
+    //
+    // Orientation: this is a view straight down with +Z (the way the bore runs)
+    // up the circle, so world +X falls on the LEFT of the map — the same side it
+    // falls on in the 3D view. Any other convention has the minimap telling the
+    // player to turn one way while the wave tells them the other.
+    const laneOf = (x, z) => laneCurve(
+      (x - this._centerX(z)) / Math.min(this._halfWidth(z), MAP.corridor),
+    ) * (MAP.ribbon * 0.5 - 2.6);
+    const lane = laneOf(plx, pz);
+    const toX = (x, z) => R - ((laneOf(x, z) - lane) + (this._centerX(z) - cx0) * MAP.lat);
+    const toY = (z) => MAP.py - (z - pz) * this.mapAlong;
+    const mx = (u) => toX(this._centerX(pz + u), pz + u);
+    const my = (u) => toY(pz + u);
 
     try {
       g.setTransform(k, 0, 0, k, 0, 0);
@@ -740,35 +1129,42 @@ export class HUD {
       g.lineWidth = MAP.ribbon * 0.34;
       g.stroke();
 
-      // ------------------------------------------------------ route ahead
-      g.save();
-      g.setLineDash([5.5, 8.5]);
-      g.lineWidth = 3.4;
-      g.strokeStyle = 'rgba(255,255,255,0.94)';
-      g.lineCap = 'round';
-      g.beginPath();
-      for (let i = 0; i <= 26; i++) {
-        const u = (this.mapRoute * i) / 26;
-        const x = mx(u), y = my(u);
-        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
-      }
-      g.stroke();
-      g.restore();
+      // ------------------------------------------- the course through the gates
+      const gates = this._gateList;
+      if (gates && gates.length) {
+        this._drawCourse(g, gates, toX, toY, pz, plx);
+      } else {
+        // No gates module: the original "keep going up the channel" hint.
+        g.save();
+        g.setLineDash([5.5, 8.5]);
+        g.lineWidth = 3.4;
+        g.strokeStyle = 'rgba(255,255,255,0.94)';
+        g.lineCap = 'round';
+        g.beginPath();
+        for (let i = 0; i <= 26; i++) {
+          const u = (this.mapRoute * i) / 26;
+          const x = mx(u), y = my(u);
+          if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.stroke();
+        g.restore();
 
-      // -------------------------------------------------- checkpoint pins
-      const dist = num(race.distance, 0);
-      const doneCp = Math.max(0, Math.round(num(race.checkpoint, 0)));
-      const totalCp = Math.max(1, Math.round(num(race.total, this.total)));
-      for (let c = doneCp + 1; c <= totalCp; c++) {
-        const u = c * this.spacing - dist;
-        if (u < -40 || u > this.mapAhead + 40) continue;
-        this._pin(g, mx(u), my(u));
+        // ------------------------------------------------ checkpoint pins
+        const dist = num(race.distance, 0);
+        const doneCp = Math.max(0, Math.round(num(race.checkpoint, 0)));
+        const totalCp = Math.max(1, Math.round(num(race.total, this.total)));
+        for (let c = doneCp + 1; c <= totalCp; c++) {
+          const u = c * this.spacing - dist;
+          if (u < -40 || u > this.mapAhead + 40) continue;
+          this._pin(g, mx(u), my(u));
+        }
       }
 
       // ------------------------------------------------------ player + cone
       g.save();
       g.translate(R, MAP.py);
-      g.rotate(heading);
+      // +heading rotates toward +X, and +X is map-left → anticlockwise on canvas.
+      g.rotate(-heading);
 
       // view cone
       const cone = g.createLinearGradient(0, 0, 0, -60);
@@ -802,6 +1198,102 @@ export class HUD {
       // A dead 2D context must not stop the frame.
       this.mapCtx = null;
     }
+  }
+
+  /**
+   * The buoy course: a line threading every gate in view, with the player spliced
+   * in at their own position so the map answers "where do I go next" in one look.
+   */
+  _drawCourse(g, gates, toX, toY, pz, plx) {
+    const back = (MAP.size - MAP.py) / this.mapAlong + 30;
+    const zMin = pz - back, zMax = pz + this.mapAhead + 80;
+    const nextI = this._gateNext ? this._gateNext.i : -1;
+    const t = this._now();
+
+    const vis = [];
+    for (let i = 0; i < gates.length; i++) {
+      const e = gates[i];
+      if (e.z < zMin || e.z > zMax) continue;
+      vis.push({ e, x: toX(e.x, e.z), y: toY(e.z) });
+    }
+    if (!vis.length) return;
+
+    // The player joins the line where they actually are along the course.
+    const me = { e: null, x: toX(plx, pz), y: toY(pz) };
+    let at = 0;
+    while (at < vis.length && vis[at].e.z < pz) at++;
+    const pts = vis.slice(0, at).concat([me], vis.slice(at));
+
+    // ---- the ribbon of the course itself
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      g.quadraticCurveTo(a.x, a.y, (a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
+    }
+    g.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    g.strokeStyle = 'rgba(26,14,4,0.62)';
+    g.lineWidth = 5.6;
+    g.stroke();
+    g.setLineDash([6, 5]);
+    g.strokeStyle = 'rgba(245,192,51,0.95)';
+    g.lineWidth = 2.6;
+    g.stroke();
+    g.restore();
+
+    // ---- one glyph per gate, oriented across the course
+    for (let i = 0; i < vis.length; i++) {
+      const p = vis[i];
+      const prev = vis[i - 1] || me, nextP = vis[i + 1] || null;
+      const ax = (nextP ? nextP.x : p.x) - prev.x;
+      const ay = (nextP ? nextP.y : p.y) - prev.y;
+      const tan = (Math.abs(ax) + Math.abs(ay)) > 1e-3 ? Math.atan2(ay, ax) : -Math.PI / 2;
+      const kind = p.e.missed ? 'miss'
+        : (p.e.passed ? 'done' : (p.e.i === nextI ? 'next' : 'todo'));
+      this._gateGlyph(g, p.x, p.y, tan + Math.PI / 2, kind, t);
+    }
+  }
+
+  /** A gate reads as two boias on a crossbar — not a pin. */
+  _gateGlyph(g, x, y, ang, kind, t) {
+    const look = GATE_LOOK[kind] || GATE_LOOK.todo;
+    const half = kind === 'next' ? 7.4 : 6.4;
+    const c = Math.cos(ang) * half, s = Math.sin(ang) * half;
+
+    g.save();
+    if (kind === 'next') {
+      const r = 10 + 1.7 * Math.sin(t * 4.2);
+      g.beginPath();
+      g.arc(x, y, r, 0, TAU);
+      g.strokeStyle = 'rgba(255,210,74,0.55)';
+      g.lineWidth = 1.8;
+      g.stroke();
+    }
+
+    g.beginPath();
+    g.moveTo(x - c, y - s);
+    g.lineTo(x + c, y + s);
+    g.strokeStyle = 'rgba(20,11,3,0.75)';
+    g.lineWidth = 4.0;
+    g.lineCap = 'round';
+    g.stroke();
+    g.strokeStyle = look.bar;
+    g.lineWidth = 2.0;
+    g.stroke();
+
+    for (let k = -1; k <= 1; k += 2) {
+      g.beginPath();
+      g.arc(x + c * k, y + s * k, look.r, 0, TAU);
+      g.fillStyle = look.buoy;
+      g.strokeStyle = look.edge;
+      g.lineWidth = kind === 'next' ? 1.9 : 1.5;
+      g.fill();
+      g.stroke();
+    }
+    g.restore();
   }
 
   _pin(g, x, y) {

@@ -311,6 +311,81 @@
   color: var(--amber);
 }
 
+/* the buoy course line: hidden unless world/gates.js is actually running */
+.pr-cp-gate {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8 * var(--s));
+  margin-top: calc(8 * var(--s));
+  font-size: calc(19 * var(--s));
+  font-weight: 800;
+  letter-spacing: .06em;
+  white-space: nowrap;
+  transition: transform .16s ease-out;
+}
+.pr-hud.pr-gates.pr-gate-on .pr-cp-gate { display: flex; }
+.pr-cpg-lab { color: var(--ink); opacity: .88; }
+.pr-cpg-n { color: var(--ink); }
+.pr-cpg-d { color: var(--amber); }
+.pr-cpg-dot {
+  width: calc(6 * var(--s));
+  height: calc(6 * var(--s));
+  background: var(--amber);
+  transform: rotate(45deg);
+  box-shadow: 0 calc(1 * var(--s)) calc(2 * var(--s)) rgba(0, 0, 0, .7);
+}
+.pr-cp.pr-gpass .pr-cp-gate { transform: scale(1.13); }
+.pr-cp.pr-gpass .pr-cpg-d,
+.pr-cp.pr-gpass .pr-cpg-n { color: #fff2c9; }
+.pr-cp.pr-gmiss .pr-cp-gate { transform: scale(1.08); }
+.pr-cp.pr-gmiss .pr-cpg-d,
+.pr-cp.pr-gmiss .pr-cpg-n,
+.pr-cp.pr-gmiss .pr-cpg-lab { color: #ff7a4a; }
+.pr-cp.pr-gmiss .pr-cpg-dot { background: #ff7a4a; }
+
+/* ==============================================  5b. GATE INDICATOR  ==== */
+/* Off-screen wedge pinned to the frame edge. hud.js writes --gx/--gy in real
+   screen pixels (it works in projected space, not reference space) and --ga in
+   degrees; everything else scales with --s like the rest of the sheet. */
+.pr-gate-arrow {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(86 * var(--s));
+  height: calc(67 * var(--s));
+  margin-left: calc(-43 * var(--s));
+  margin-top: calc(-33.5 * var(--s));
+  transform: translate(var(--gx, 50vw), var(--gy, 50vh));
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.pr-hud.pr-gates.pr-gate-on .pr-gate-arrow { display: block; }
+.pr-ga-wedge {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--ga, 0deg)) scale(var(--gs, 1));
+  filter:
+    drop-shadow(0 calc(2 * var(--s)) calc(5 * var(--s)) rgba(0, 0, 0, .8))
+    drop-shadow(0 0 calc(14 * var(--s)) rgba(255, 140, 20, .5));
+}
+.pr-ga-wedge svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.pr-ga-dist {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translate(var(--gdx, 0px), var(--gdy, 0px));
+  font-size: calc(21 * var(--s));
+  font-weight: 800;
+  letter-spacing: .05em;
+  color: var(--amber-hi);
+  white-space: nowrap;
+  text-shadow:
+    0 calc(2 * var(--s)) 0 rgba(0, 0, 0, .6),
+    0 calc(2 * var(--s)) calc(7 * var(--s)) rgba(0, 0, 0, .9);
+}
+
 /* =========================================================  6. SPEED  ==== */
 .pr-speed {
   position: absolute;

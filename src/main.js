@@ -29,6 +29,8 @@ import { Post } from './gfx/post.js';
 
 import { HUD } from './hud/hud.js';
 import { Menu } from './hud/menu.js';
+import { TitleScreen } from './hud/title.js';
+import { StoryScreen } from './hud/story.js';
 import { installCapture } from './capture.js';
 
 const boot = document.getElementById('boot');
@@ -206,11 +208,25 @@ export async function boot_() {
 
   if (!captureMode) { last = performance.now(); rafId = requestAnimationFrame(frame); }
 
-  // First visit: open the menu on the controls tab. There is a lot to remember,
-  // and a surf game is unplayable if you do not know you can pump and tuck.
-  if (menu && !localStorage.getItem('pororoca.seen')) {
-    try { localStorage.setItem('pororoca.seen', '1'); } catch { /* private mode */ }
-    setTimeout(() => menu.show(), 950);
+  // Opening screen. Holds the sim paused behind it so the first thing the player
+  // sees is the title over a live scene, not a surfer already halfway down the run.
+  if (!captureMode) {
+    const story = new StoryScreen({ onClose: () => title.show() });
+    const title = new TitleScreen({
+      onStart: () => {
+        state.paused = false;
+        // Controls are a lot to remember, and a surf game is unplayable if you
+        // never learn to pump and tuck — so show them once, on the first run only.
+        if (menu && !localStorage.getItem('pororoca.seen')) {
+          try { localStorage.setItem('pororoca.seen', '1'); } catch { /* private mode */ }
+          menu.show();
+        }
+      },
+      onStory: () => { title.hide(); story.show(); },
+    });
+    state.paused = true;
+    title.show();
+    window.PR_UI = { title, story, menu };
   }
 
   window.PR = { ctx, state, bore, physics, tricks, rig, hud, post, renderer, scene, camera,
