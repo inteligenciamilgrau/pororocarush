@@ -103,6 +103,8 @@ export class SoundEffects {
     on('gate:miss', (p) => this._gate(p, false));
     on('race:finish', () => this._finish());
     on('race:recover', () => this._recover());
+    on('boto:appear', () => this._botoCall(0.045));
+    on('boto:surface', (p) => this._botoSurface(p));
   }
 
   _build() {
@@ -330,6 +332,17 @@ export class SoundEffects {
   _recover() {
     this._tone(220, 440, 0.24, 0.08, 'sine', -0.12);
     this._splash(0.2, 0.2, 0.14);
+  }
+
+  _botoCall(delay = 0) {
+    this._tone(760, 1280, 0.15, 0.075, 'sine', 0.22, delay);
+    this._tone(1180, 880, 0.12, 0.055, 'sine', -0.18, delay + 0.12);
+  }
+
+  _botoSurface(p) {
+    const pan = p.side < 0 ? -0.38 : 0.38;
+    this._splash(0.36, 0.28, pan);
+    this._tone(920, 1480, 0.13, 0.065, 'sine', pan, 0.025);
   }
 
   _chime(freqs, amount, spacing) {
