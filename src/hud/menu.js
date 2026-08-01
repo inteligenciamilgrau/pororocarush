@@ -26,9 +26,9 @@ export const DEFAULT_OPTS = {
   fov: 58,
   renderScale: 1.0,
   music: true,
-  musicVolume: 0.68,
+  musicVolume: 0.50,
   sfx: true,
-  sfxVolume: 0.78,
+  sfxVolume: 0.90,
   showHud: true,
   showTips: true,
 };

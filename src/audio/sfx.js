@@ -10,7 +10,7 @@ export class SoundEffects {
     this.state = ctx.state;
     this.bus = ctx.bus;
     this.enabled = true;
-    this.volume = 0.78;
+    this.volume = 0.90;
     this.paused = false;
     this.started = false;
     this.audio = null;
@@ -311,9 +311,14 @@ export class SoundEffects {
   _gate(p, passed) {
     if (passed) {
       const center = 1 - clamp(p.margem ?? 0.5);
+      // Fast stereo whoosh as the two buoys sweep past the board.
+      this._noiseBurst(0.30, 0.20 + center * 0.08, 'bandpass', 520, 3900, -0.45);
+      this._noiseBurst(0.30, 0.16 + center * 0.07, 'bandpass', 620, 3400, 0.45, 0.025);
       this._chime([740, 990 + center * 180], 0.09, 0.075);
     } else {
-      this._tone(170, 68, 0.35, 0.17, 'square');
+      this._tone(196, 72, 0.42, 0.18, 'square', -0.08);
+      this._tone(139, 58, 0.38, 0.13, 'triangle', 0.12, 0.07);
+      this._splash(0.25, 0.24, p.side < 0 ? -0.45 : 0.45);
     }
   }
 

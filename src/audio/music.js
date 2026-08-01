@@ -14,7 +14,7 @@ export class PororocaMusic {
   constructor(ctx) {
     this.state = ctx.state;
     this.enabled = true;
-    this.volume = 0.68;
+    this.volume = 0.50;
     this.started = false;
     this.pausedByGame = false;
     this.index = 0;
