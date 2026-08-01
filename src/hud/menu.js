@@ -196,6 +196,7 @@ export class Menu {
   <div class="foot">
     <span class="hint">ESC ou P para fechar</span>
     <span class="spacer"></span>
+    <button class="btn" data-act="defaults">Redefinir opções</button>
     <button class="btn" data-act="reset">Voltar pro pocket</button>
     <button class="btn primary" data-act="close">Surfar</button>
   </div>
@@ -216,6 +217,19 @@ export class Menu {
       b.addEventListener('click', () => { this._tab = b.dataset.tab; this._renderTabs(); this._render(); });
     });
     el.querySelector('[data-act=close]').addEventListener('click', () => this.close());
+    // Preferences persist, so a camera picked once keeps coming back on every
+    // load — invisibly, and it looks like the game ignoring you.
+    el.querySelector('[data-act=defaults]').addEventListener('click', () => {
+      this.opts = { ...DEFAULT_OPTS };
+      try { localStorage.removeItem(STORE_KEY); } catch { /* private mode */ }
+      this.state.camera.flip180 = false;
+      this.state.camera.lookYaw = 0;
+      this.state.camera.lookPitch = 0;
+      this.state.camera.zoom = 1;
+      this.onOptsChange(this.opts);
+      this._render();
+      this._syncLockHint();
+    });
     el.querySelector('[data-act=reset]').addEventListener('click', () => {
       this.ctx.physics?.reset?.();
       this.close();

@@ -283,10 +283,6 @@ export class CameraRig {
       if (vmm > 1.2) { rdx = vx / vmm; rdz = vz / vmm; }
       else { rdx = Math.sin(heading); rdz = Math.cos(heading); }
 
-      // Explicit 180° flip, for when the player wants the reverse angle.
-      if (this.state && this.state.camera && this.state.camera.flip180) {
-        rdx = -rdx; rdz = -rdz;
-      }
     } else {
       rdx = vdx * (1 - bl) + dlx * bl;
       rdz = vdz * (1 - bl) + dlz * bl;
@@ -295,6 +291,13 @@ export class CameraRig {
     }
     let rm = Math.hypot(rdx, rdz) || 1;
     rdx /= rm; rdz /= rm;
+
+    // 180° flip applies to EVERY mode, not just the rear family — otherwise the
+    // key silently does nothing whenever the player happens to be on a display
+    // angle, which reads as "the flip is broken".
+    if (this.state && this.state.camera && this.state.camera.flip180) {
+      rdx = -rdx; rdz = -rdz;
+    }
 
     const baseSmooth = 1 / Math.max(0.5, num(this.cfg.smooth, 6.5));
     // Wipeout loosens the rig; the tube tightens it.
