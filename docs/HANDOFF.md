@@ -64,9 +64,12 @@ node tools/vendor.mjs              # revendoriza o three
 5. **Mundo +X cai na ESQUERDA da tela** (a câmera olha em +Z num sistema destro).
    Já mordeu o projeto três vezes: inversão do A/D, do giro no ar e do eixo X do mouse.
    Todas corrigidas em `src/core/input.js`, na fronteira de entrada.
-6. **Há um hook/formatador que reverte edições em `src/hud/story.js`.** Ele desfez
-   alterações duas vezes. Depois de editar esse arquivo, **confirme com `grep` que a
-   mudança sobreviveu.**
+6. **Há um hook/formatador que reverte edições em `src/hud/story.js`** feitas pela
+   ferramenta de edição. Ele desfez alterações três vezes, silenciosamente — inclusive
+   uma que já tinha sido dada como concluída num commit. O contorno que funcionou foi
+   patchar o arquivo por script (`node - <<EOF ... fs.writeFileSync`) em vez da
+   ferramenta de edição. **Depois de mexer nesse arquivo, confirme com `grep` que a
+   mudança sobreviveu antes de commitar.**
 
 ## 4. Estado atual — o que já funciona
 

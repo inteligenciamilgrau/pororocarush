@@ -73,8 +73,8 @@ const VIEW = {
   behind: 220,          // metres of course kept instanced behind the player
   ahead: 1400,          // ... and ahead
   maxBuoys: 24,         // instanced capacity (12 gates x 2 fits with room to spare)
-  mastTop: 3.45,        // local Y of the flag halyard
-  lampY: 2.86,          // local Y of the lantern
+  mastTop: 4.56,        // local Y of the flag halyard
+  lampY: 3.86,          // local Y of the lantern
 };
 
 // Float dynamics. Not a rigid-body sim — a critically-ish damped heave that
@@ -167,15 +167,19 @@ function makeBuoy(THREE, seed) {
   const parts = [];
 
   // --- float body (lathe: drum belly, narrow neck) ---------------------------
+  // 1 m across. That is a big drum, and it is sized off the *screen*: at the
+  // 160 m where the player still has time to change line, 1 m subtends ~10 px.
+  // Anything daintier is a two-pixel smudge on amber water and the gate stops
+  // being a thing you can plan for.
   const profile = [
-    [0.00, -0.58], [0.17, -0.55], [0.31, -0.46], [0.41, -0.28],
-    [0.45, -0.06], [0.445, 0.12], [0.385, 0.28], [0.275, 0.40],
-    [0.155, 0.47], [0.105, 0.55], [0.105, 0.66], [0.00, 0.68],
+    [0.00, -0.62], [0.20, -0.59], [0.36, -0.49], [0.47, -0.29],
+    [0.52, -0.05], [0.515, 0.14], [0.45, 0.32], [0.33, 0.46],
+    [0.19, 0.55], [0.125, 0.63], [0.125, 0.74], [0.00, 0.76],
   ].map(([r, y]) => new THREE.Vector2(r, y));
   const body = new THREE.LatheGeometry(profile, 16);
   paint(THREE, body, (c, x, y, z) => {
     const g = nz(x * 3 + z * 5, y * 9, seed);
-    if (y < -0.30) {
+    if (y < -0.32) {
       // deep, permanently wet: dark silt-stained plastic
       c.setHex(0x6b4a24).multiplyScalar(0.70 + g * 0.34);
     } else if (y < 0.02) {
@@ -184,6 +188,10 @@ function makeBuoy(THREE, seed) {
     } else if (y < 0.10) {
       // scum line: bleached, crusty
       c.setHex(0xb99a63).multiplyScalar(0.78 + g * 0.40);
+    } else if (y > 0.30 && y < 0.52) {
+      // painted band. Cream against ochre water is the highest-contrast pair
+      // this palette allows, and banded markers are what the river actually uses.
+      c.setHex(0xeadcbe).multiplyScalar(0.86 + g * 0.26);
     } else {
       // faded orange drum, chalky where the sun has been on it for years
       c.setHex(g > 0.62 ? 0xd8a24a : 0xc8701f).multiplyScalar(0.80 + g * 0.42);
@@ -192,7 +200,7 @@ function makeBuoy(THREE, seed) {
   parts.push(body);
 
   // --- rusted iron hoop round the belly --------------------------------------
-  const hoop = new THREE.TorusGeometry(0.452, 0.030, 5, 18);
+  const hoop = new THREE.TorusGeometry(0.522, 0.034, 5, 18);
   hoop.rotateX(Math.PI / 2);
   hoop.translate(0, 0.02, 0);
   paint(THREE, hoop, (c, x, y, z) => {
@@ -202,7 +210,7 @@ function makeBuoy(THREE, seed) {
   parts.push(hoop);
 
   // --- hemp lashing round the shoulder and the neck --------------------------
-  for (const [r, y, tube] of [[0.305, 0.345, 0.026], [0.132, 0.585, 0.023], [0.132, 0.638, 0.023]]) {
+  for (const [r, y, tube] of [[0.355, 0.395, 0.028], [0.152, 0.655, 0.026], [0.152, 0.712, 0.026]]) {
     const rope = new THREE.TorusGeometry(r, tube, 4, 14);
     rope.rotateX(Math.PI / 2);
     rope.translate(0, y, 0);
@@ -213,29 +221,33 @@ function makeBuoy(THREE, seed) {
     parts.push(rope);
   }
 
-  // --- mast: a thin hardwood pole. The silhouette is the gameplay: at 200 m
-  //     this dark vertical against bright water is what tells you a gate is
-  //     coming while there is still time to steer for it.
-  const mast = new THREE.CylinderGeometry(0.028, 0.044, 2.86, 6, 1, false);
-  mast.translate(0, 0.66 + 1.43, 0);
+  // --- mast: a banded pole, 4.6 m to the halyard.
+  //     The silhouette IS the gameplay. Alternating dark hardwood and cream
+  //     paint means the pole holds contrast whether it is standing against the
+  //     black jungle or against the blown-out sun road — a single-tone mast
+  //     vanished into whichever of the two it happened to match.
+  const mast = new THREE.CylinderGeometry(0.058, 0.082, 3.85, 7, 14, false);
+  mast.translate(0, 0.74 + 1.925, 0);
   paint(THREE, mast, (c, x, y, z) => {
     const g = nz(x * 21 + z * 13, y * 4, seed + 13);
-    c.setHex(0x3a2a19).multiplyScalar(0.74 + g * 0.46);
+    const band = Math.floor((y - 0.74) * 1.55) & 1;
+    if (band) c.setHex(0xe0cda8).multiplyScalar(0.84 + g * 0.28);
+    else c.setHex(0x33251a).multiplyScalar(0.72 + g * 0.5);
   });
   parts.push(mast);
 
   // collar where the mast is stepped into the drum
-  const collar = new THREE.CylinderGeometry(0.072, 0.092, 0.10, 7, 1, false);
-  collar.translate(0, 0.70, 0);
+  const collar = new THREE.CylinderGeometry(0.095, 0.115, 0.12, 7, 1, false);
+  collar.translate(0, 0.78, 0);
   paint(THREE, collar, (c) => c.setHex(0x8a6c40));
   parts.push(collar);
 
   // --- mooring line, trailing down to the poita. Only ever visible when the
   //     bore lifts the float clear of the water — which is exactly the moment
   //     it sells that these things are anchored and the river is moving.
-  const line = new THREE.CylinderGeometry(0.017, 0.017, 1.70, 4, 1, false);
+  const line = new THREE.CylinderGeometry(0.019, 0.019, 1.80, 4, 1, false);
   line.rotateZ(0.24);
-  line.translate(0.16, -1.42, 0.05);
+  line.translate(0.18, -1.50, 0.05);
   paint(THREE, line, (c, x, y, z) => {
     const g = nz(x * 17, z * 17, seed + 17);
     c.setHex(0x2e2418).multiplyScalar(0.7 + g * 0.6);
@@ -252,15 +264,15 @@ function makeBuoy(THREE, seed) {
  * still reads against an amber sunset.
  */
 function makeFlag(THREE) {
-  const NSEG = 6, LEN = 0.98;
+  const NSEG = 6, LEN = 1.34;
   const pos = [], col = [], uv = [], idx = [];
   const c = new THREE.Color();
   for (let i = 0; i <= NSEG; i++) {
     const u = i / NSEG;
     const x = u * LEN;
-    const top = -0.03 - 0.02 * u;
-    const drop = lerp(0.36, 0.13, u);
-    const z = 0.115 * Math.sin(u * 4.1) * u;      // baked flutter
+    const top = -0.04 - 0.03 * u;
+    const drop = lerp(0.52, 0.17, u);
+    const z = 0.16 * Math.sin(u * 4.1) * u;       // baked flutter
     pos.push(x, top, z, x, top - drop, z);
     uv.push(u, 1, u, 0);
     for (let k = 0; k < 2; k++) {
@@ -286,11 +298,11 @@ function makeFlag(THREE) {
 /** The lantern on the next gate's masts — a lamparina, not a runway light. */
 function makeLamp(THREE) {
   const parts = [];
-  const glass = new THREE.SphereGeometry(0.088, 8, 6);
+  const glass = new THREE.SphereGeometry(0.125, 8, 6);
   paint(THREE, glass, (c) => c.setRGB(1, 0.78, 0.44));
   parts.push(glass);
-  const cap = new THREE.CylinderGeometry(0.052, 0.072, 0.055, 6, 1, false);
-  cap.translate(0, 0.105, 0);
+  const cap = new THREE.CylinderGeometry(0.070, 0.098, 0.070, 6, 1, false);
+  cap.translate(0, 0.145, 0);
   paint(THREE, cap, (c) => c.setRGB(0.30, 0.22, 0.15));
   parts.push(cap);
   return mergeAll(THREE, parts);
@@ -851,7 +863,7 @@ export class Gates {
         cg = lerp(TINT.pending[1], TINT.next[1], e);
         cb = lerp(TINT.pending[2], TINT.next[2], e);
       }
-      const flagScale = 1 + 0.85 * g.emph;
+      const flagScale = 1 + 0.70 * g.emph;
 
       for (let k = 0; k < 2; k++) {
         if (nb >= VIEW.maxBuoys) break;
@@ -891,9 +903,12 @@ export class Gates {
           mOut.multiplyMatrices(m, mLocal);
           lamp.setMatrixAt(nl, mOut);
           if (lc) {
-            const fl = (0.90 + 0.10 * Math.sin(t * 3.3 + b.phase)) * (0.25 + 0.75 * g.emph);
+            // Above CONFIG.look.bloomThreshold (2.4 linear luma) on purpose:
+            // the lamparina is meant to bloom into a visible dot long before
+            // the buoy under it resolves into anything.
+            const fl = (0.90 + 0.10 * Math.sin(t * 3.3 + b.phase)) * g.emph;
             const o = nl * 3;
-            lc[o] = 3.4 * fl; lc[o + 1] = 2.1 * fl; lc[o + 2] = 0.9 * fl;
+            lc[o] = 4.8 * fl; lc[o + 1] = 3.0 * fl; lc[o + 2] = 1.2 * fl;
           }
           nl++;
         }

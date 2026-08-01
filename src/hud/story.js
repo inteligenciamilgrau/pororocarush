@@ -43,6 +43,7 @@ const CSS = `
 #${ROOT_ID} *{box-sizing:border-box;margin:0;padding:0}
 
 #${ROOT_ID} .panel{
+  position:relative;
   width:min(86em,95vw);max-height:93vh;display:flex;flex-direction:column;
   background:linear-gradient(180deg,rgba(33,19,9,.965),rgba(17,10,5,.985));
   border:1px solid rgba(245,192,51,.30);border-radius:.75em;
@@ -77,6 +78,17 @@ const CSS = `
 #${ROOT_ID} .body::-webkit-scrollbar-thumb{background:rgba(245,192,51,.38);border-radius:1em}
 
 #${ROOT_ID} .acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(21em,1fr));gap:1.15em}
+
+#${ROOT_ID} .art{margin:0 0 1.3em}
+#${ROOT_ID} .art img{
+  display:block;width:100%;height:auto;border-radius:.4em;
+  border:1px solid rgba(245,192,51,.22);box-shadow:0 1em 3em rgba(0,0,0,.5);
+}
+#${ROOT_ID} .art figcaption{
+  margin-top:.5em;font-size:.96em;line-height:1.35;color:#d9c9ae;
+  border-left:.14em solid var(--amber);padding-left:.7em;
+}
+#${ROOT_ID} .art.diagram img{background:#140c06}
 
 #${ROOT_ID} .card{
   display:flex;flex-direction:column;gap:.7em;padding:.85em .9em 1em;
@@ -117,8 +129,16 @@ const CSS = `
 
 /* ---------------------------------------------------------------- footer -- */
 #${ROOT_ID} .foot{
+  position:relative;
   display:flex;align-items:center;gap:.8em;padding:.85em 1.8em;
   border-top:1px solid rgba(245,192,51,.18);background:rgba(0,0,0,.24);
+}
+/* Fade over the bottom of the scroll area. Without it nothing signals that the
+   fact bar is below the fold on a 720p screen, and the native thin scrollbar is
+   nearly invisible against the panel edge. */
+#${ROOT_ID} .foot::before{
+  content:'';position:absolute;left:0;right:0;bottom:100%;height:2.4em;
+  pointer-events:none;background:linear-gradient(180deg,rgba(19,11,6,0),rgba(19,11,6,.94));
 }
 #${ROOT_ID} .foot .hint{
   font-size:.82em;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.7;
@@ -147,7 +167,15 @@ const CSS = `
 @keyframes pr-story-rise{from{opacity:0;transform:translateY(1.6em) scale(.985)}to{opacity:1;transform:none}}
 @keyframes pr-story-glow{0%,100%{opacity:.16}50%{opacity:.34}}
 
-/* Very short viewports: give the scroll area everything it can get. */
+/* Short viewports: give the scroll area everything it can get. */
+@media (max-height:820px){
+  #${ROOT_ID} .panel{max-height:96vh}
+  #${ROOT_ID} .head{padding:1.1em 1.5em .85em}
+  #${ROOT_ID} .body{padding:1em 1.5em 1.2em}
+  #${ROOT_ID} .foot{padding:.7em 1.5em}
+  #${ROOT_ID} .card{gap:.55em;padding:.7em .75em .85em}
+  #${ROOT_ID} .facts{margin-top:.9em;padding-top:.8em}
+}
 @media (max-height:560px){
   #${ROOT_ID} .panel{max-height:98vh}
   #${ROOT_ID} .head{padding:.9em 1.4em .8em}
@@ -579,6 +607,20 @@ export class StoryScreen {
         <div>${a.body}</div>
       </article>`).join('');
 
+    // A arte gerada conta a historia; os paineis SVG ficam como fallback para
+    // quando os arquivos faltam ou o jogador esta offline.
+    const art = `
+      <figure class="art hero">
+        <img src="./assets/pororoca-historia.webp" loading="lazy" decoding="async"
+             alt="A pororoca ao por do sol: uma unica onda atravessa o rio inteiro, com a lua cheia baixa no ceu e um povoado de palafitas na margem." />
+        <figcaption>A frente atravessa o rio de margem a margem. A lua no mesmo quadro nao e enfeite &mdash; e ela que levanta a mare que empurra essa parede de agua.</figcaption>
+      </figure>
+      <figure class="art diagram">
+        <img src="./assets/pororoca-historia-infografico.webp" loading="lazy" decoding="async"
+             alt="Infografico em tres partes: Sol, Terra e Lua alinhados deformando os oceanos; a mare entrando pela foz e afunilando; a onda subindo o rio contra a correnteza, com um surfista na face." />
+        <figcaption>Da lua ao rio, em tres passos.</figcaption>
+      </figure>`;
+
     const facts = FACTS.map((f) => `
       <div class="fact"><b>${f.k}</b><span>${f.v}</span></div>`).join('');
 
@@ -593,7 +635,8 @@ export class StoryScreen {
   </header>
 
   <div class="body">
-    <div class="acts">${cards}</div>
+    ${art}
+    <div class="acts" data-fallback hidden>${cards}</div>
     <div class="facts">${facts}</div>
   </div>
 
@@ -609,6 +652,15 @@ export class StoryScreen {
     this.panel = el.querySelector('.panel');
     this.bodyEl = el.querySelector('.body');
     this.closeBtn = el.querySelector('[data-act=close]');
+
+    // Se alguma imagem falhar, esconde a figura e revela os paineis SVG, para o
+    // jogador offline continuar recebendo a explicacao em vez de caixas vazias.
+    const acts = el.querySelector('[data-fallback]');
+    el.querySelectorAll('.art img').forEach((img) => {
+      const fail = () => { img.closest('figure').hidden = true; if (acts) acts.hidden = false; };
+      if (img.complete) { if (!img.naturalWidth) fail(); }
+      else img.addEventListener('error', fail, { once: true });
+    });
 
     this.closeBtn.addEventListener('click', () => this.hide());
     // Backdrop closes; the panel does not.

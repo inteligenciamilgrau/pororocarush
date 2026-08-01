@@ -264,6 +264,20 @@ export class Race {
     const g = this.ctx && this.ctx.gates;
     if (!g) return null;
 
+    // Preferred: gates.js' own bearingTo(x, z) — true 2D distance to the next
+    // pair, the same number the HUD's gate arrow uses.
+    if (typeof g.bearingTo === 'function') {
+      try {
+        const p = this.state.player || {};
+        const b = g.bearingTo(num(p.x, 0), num(p.z, num(this.state.bore && this.state.bore.z, 0)));
+        const v = Number(b && b.dist);
+        if (Number.isFinite(v)) {
+          // dist 0 with no gate left means the course is over, not "0 m away".
+          if (v > 0 || (b && b.gate)) return clamp(v, 0, TUNE.gateMaxDistance);
+        }
+      } catch (_) { /* fall through to next() */ }
+    }
+
     let nx = null;
     try {
       if (typeof g.next === 'function') nx = g.next();
