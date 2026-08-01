@@ -119,6 +119,7 @@ export async function boot_() {
         input.opts = o;
         rig.setMode(o.camera);
         state.camera.mode = o.camera;
+        state.camera.flip180 = !!o.flip180;
         camera.fov = o.fov;
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(

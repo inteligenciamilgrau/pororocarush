@@ -271,18 +271,21 @@ export class CameraRig {
     const bl = shape.lockBehind ? 0 : FRAME.downLineBlend * (1 - wo * 0.8);
     let rdx, rdz;
     if (shape.lockBehind) {
-      // Anchored to the RIVER, not to the board's heading. Following the heading
-      // means every carve swings the camera around the surfer — steering ends up
-      // driving the camera, which is not what a chase cam is for. Down-river is a
-      // stable reference; the mouse is the only thing that orbits off it.
-      const rv = this.ctx && this.ctx.river;
-      if (rv && typeof rv.tangent === 'function') {
-        const tg = rv.tangent(pz, this._tan || (this._tan = { x: 0, y: 0, z: 1 }));
-        const tx0 = num(tg && tg.x, 0), tz0 = num(tg && tg.z, 1);
-        const tm = Math.hypot(tx0, tz0);
-        if (tm > 1e-3) { rdx = tx0 / tm; rdz = tz0 / tm; } else { rdx = 0; rdz = 1; }
-      } else {
-        rdx = 0; rdz = 1;   // +Z is the direction the bore travels
+      // Anchored to the DIRECTION OF TRAVEL, not to the board's heading and not
+      // to the river.
+      //
+      // Heading swings the camera on every carve — steering ends up driving the
+      // camera. The river never swings, but "behind, river-wise" is not "behind
+      // the surfer": crossing the face, it shows his side. Velocity is the one
+      // that means what a chase cam should mean, and it turns far slower than
+      // heading does, so quick steering does not throw it around.
+      const vmm = Math.hypot(vx, vz);
+      if (vmm > 1.2) { rdx = vx / vmm; rdz = vz / vmm; }
+      else { rdx = Math.sin(heading); rdz = Math.cos(heading); }
+
+      // Explicit 180° flip, for when the player wants the reverse angle.
+      if (this.state && this.state.camera && this.state.camera.flip180) {
+        rdx = -rdx; rdz = -rdz;
       }
     } else {
       rdx = vdx * (1 - bl) + dlx * bl;

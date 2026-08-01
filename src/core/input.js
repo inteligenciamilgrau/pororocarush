@@ -12,6 +12,7 @@ const KEYMAP = {
   KeyQ: 'spinL', KeyE: 'spinR',
   KeyG: 'grab', KeyJ: 'grab',
   KeyC: 'cam',
+  KeyV: 'flip',
   KeyP: 'pause',
   KeyR: 'reset',
 };
@@ -193,6 +194,7 @@ export class Input {
     if (pad && Math.abs(pad.axes[2] ?? 0) > 0.2) i.spin = -pad.axes[2];
 
     i.camCycle = this.pressed.has('cam');
+    if (this.pressed.has('flip')) this.state.camera.flip180 = !this.state.camera.flip180;
     i.resetPressed = this.pressed.has('reset');
     // P / ESC belong to hud/menu.js, which owns `state.paused` while the overlay
     // is up. Toggling it here too soft-locked the game: main.js skips the whole

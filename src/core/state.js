@@ -104,6 +104,7 @@ export function createState() {
       lookYaw: 0,     // radians, + orbits right
       lookPitch: 0,   // radians, + orbits up
       zoom: 1,        // multiplier on the standoff distance
+      flip180: false, // reverse angle: rig ahead of the surfer, looking back
     },
 
     debug: { physics: false, wireframe: false, freeze: false },

@@ -15,6 +15,7 @@ export const DEFAULT_OPTS = {
   invertMouseY: false,
   autoRecenter: false,
   pointerLock: true,
+  flip180: false,
   camera: 'chase',
   fov: 58,
   renderScale: 1.0,
@@ -53,7 +54,8 @@ const CONTROLS = [
   {
     group: 'Câmera e sistema',
     rows: [
-      { keys: ['C'], desc: 'Trocar câmera: perseguição · frente · lado · aérea' },
+      { keys: ['C'], desc: 'Trocar câmera: perseguição · baixa · rabeta · 1ª pessoa · aberta · frente · lado · aérea' },
+      { keys: ['V'], desc: 'Virar a câmera 180° — passa para o contra-plano' },
       { keys: ['P'], alt: 'ESC', desc: 'Pausar e abrir este menu' },
       { keys: ['R'], desc: 'Voltar para o pocket da onda' },
     ],
@@ -305,6 +307,7 @@ ${rng('steerSensitivity', 'Sensibilidade da direção', 'O quanto a prancha resp
     </optgroup>
   </select></div>
 </div>
+${sw('flip180', 'Virar câmera 180°', 'Contra-plano: o rig vai para a frente e olha de volta · tecla V')}
 ${sw('mouseLook', 'Mouse controla a câmera', 'Arraste para girar em volta do surfista · roda dá zoom · botão do meio recentraliza')}
 ${rng('mouseSensitivity', 'Sensibilidade do mouse', 'O quanto a câmera gira por pixel arrastado', 0.3, 2.5, 0.05, (v) => (+v).toFixed(2) + '×')}
 ${sw('invertMouseY', 'Inverter eixo Y do mouse', 'Arrastar para baixo olha para cima')}
