@@ -271,17 +271,26 @@ export class CameraRig {
     const bl = shape.lockBehind ? 0 : FRAME.downLineBlend * (1 - wo * 0.8);
     let rdx, rdz;
     if (shape.lockBehind) {
-      // Anchored to the DIRECTION OF TRAVEL, not to the board's heading and not
-      // to the river.
+      // Anchored to the RIVER — a direction fixed in the world, not to anything
+      // the player controls.
       //
-      // Heading swings the camera on every carve — steering ends up driving the
-      // camera. The river never swings, but "behind, river-wise" is not "behind
-      // the surfer": crossing the face, it shows his side. Velocity is the one
-      // that means what a chase cam should mean, and it turns far slower than
-      // heading does, so quick steering does not throw it around.
-      const vmm = Math.hypot(vx, vz);
-      if (vmm > 1.2) { rdx = vx / vmm; rdz = vz / vmm; }
-      else { rdx = Math.sin(heading); rdz = Math.cos(heading); }
+      // This is a deliberate design call, made after trying the alternatives:
+      // anchoring to the board's heading swings the camera on every carve, and
+      // anchoring to the velocity does the same thing more slowly. Either way,
+      // steering ends up rotating the camera. Here steering rotates only the
+      // SURFER, who turns within a stable frame, and the mouse is the one and
+      // only thing that moves the camera. It costs the strict over-the-shoulder
+      // framing when he crosses the face — that is the trade, and it is worth it
+      // for a camera you can aim once and forget.
+      const rv = this.ctx && this.ctx.river;
+      if (rv && typeof rv.tangent === 'function') {
+        const tg = rv.tangent(pz, this._tan || (this._tan = { x: 0, y: 0, z: 1 }));
+        const tx0 = num(tg && tg.x, 0), tz0 = num(tg && tg.z, 1);
+        const tm = Math.hypot(tx0, tz0);
+        if (tm > 1e-3) { rdx = tx0 / tm; rdz = tz0 / tm; } else { rdx = 0; rdz = 1; }
+      } else {
+        rdx = 0; rdz = 1;   // +Z is the direction the bore travels
+      }
 
     } else {
       rdx = vdx * (1 - bl) + dlx * bl;
@@ -492,6 +501,12 @@ export class CameraRig {
       st.camera.mode = this.mode;
     }
 
+    _dbg.final = [cx, cy, cz];
+    _dbg.finalAim = [tx, ty, tz];
+    _dbg.basis = { ax: this._ax, az: this._az, fx: this._fx, fz: this._fz };
+    _dbg.crestAtPlayer = this._crest(px, t);
+    _dbg.crestAtCam = this._crest(cx, t);
+    _dbg.playerD = num(p.d, null);
     this._snap = false;
   }
 
