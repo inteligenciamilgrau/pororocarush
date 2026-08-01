@@ -147,14 +147,22 @@ export const CONFIG = {
   // Colours sampled from the concept art. Linear-space sRGB hex.
   look: {
     sunColor: 0xffd9a0,
-    sunIntensity: 4.4,
+    // GLARE BUDGET — the chase camera stares down the sun's azimuth over water,
+    // and the wave body is a MeshStandardMaterial at roughness 0.35. At grazing
+    // incidence its specular lobe covers most of the frame, so `sunIntensity` is
+    // the single biggest lever on into-sun legibility: hiding the wave mesh took
+    // the clipped-pixel count from 4.2% to 0.3%. It came down from 4.4, and the
+    // brightness lost is paid back through `ambientIntensity` below, which is
+    // directionless and therefore lifts the away-from-sun views without feeding
+    // that lobe at all.
+    sunIntensity: 1.9,
     sunElevation: 0.055,     // radians above the horizon
     sunAzimuth: 0.0,         // 0 = straight down the river (+Z)
     skyTop: 0x2e3646,
     skyHorizon: 0xffa64a,
     ambientSky: 0xffbe7a,
     ambientGround: 0x2a1c10,
-    ambientIntensity: 0.85,
+    ambientIntensity: 1.55,  // pays back the sun cut without adding to its lobe
     fogColor: 0xd08a45,
     fogNear: 90,
     fogFar: 2400,
@@ -167,17 +175,27 @@ export const CONFIG = {
     jungleDark: 0x101a10,
     jungleLit: 0x3c4a22,
     // -- glare budget (measured with tools/glare.mjs; see src/gfx/post.js) ----
-    skyGain: 1.0,            // diffuse dome radiance multiplier
-    sunGlare: 1.0,           // solar disc brightness
-    sunHalo: 1.0,            // wide forward-scatter halo + horizon hot band
-    exposure: 1.0,           // look trim on top of CONFIG.render.exposure
-    blackPoint: 0.0,         // linear black subtracted before the tone map
-    saturation: 1.06,
-    contrast: 1.03,
-    bloomStrength: 0.62,
-    bloomRadius: 0.72,
-    bloomThreshold: 0.72,
-    vignette: 0.34,
+    // The dome is now BRIGHTER than it started (1.0 → 1.5) and the frame is far
+    // darker than it started. That is the whole point: the sky was never what
+    // blinded the player. Lifting the dome while the water came down is what
+    // buys the jungle its silhouette and the frame its dynamic range — chase
+    // p95 went 152 → 170 on this knob alone with p05 and p50 unmoved.
+    skyGain: 1.50,           // diffuse dome radiance multiplier
+    sunGlare: 2.20,          // solar disc — kept hot on purpose, it IS the sun
+    sunHalo: 1.20,           // wide forward-scatter halo + horizon hot band
+    exposure: 1.30,          // look trim on top of CONFIG.render.exposure
+    blackPoint: 0.014,       // linear black subtracted before the tone map
+    saturation: 1.14,        // the frame is amber; saturation is what keeps it
+    contrast: 1.03,          // from reading as "washed out" rather than "bright"
+    // radius is a mip crossfade, NOT a size: 0.72 weighted the 1/16 and 1/32
+    // mips hardest and smeared the sun over the whole frame as a flat veil —
+    // that veil alone was ~60/255 of lift on every pixel of the frame.
+    // threshold is LINEAR HDR luminance, and the diffuse sky lives near
+    // 0.6..1.4 there, so only the disc and the specular glitter clear 2.4.
+    bloomStrength: 0.60,
+    bloomRadius: 0.22,
+    bloomThreshold: 2.4,
+    vignette: 0.40,
     grainAmount: 0.022,
     chromaticAberration: 0.0016,
   },

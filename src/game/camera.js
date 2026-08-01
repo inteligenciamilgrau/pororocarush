@@ -332,6 +332,38 @@ export class CameraRig {
       cx = px + ox * k; cy = py + oy * k; cz = pz + oz * k;
     }
 
+    // ---- player look (mouse) -------------------------------------------------
+    // Orbits the rig around the aim point instead of swinging the aim, so the
+    // surfer stays framed at any angle. Deliberately placed BEFORE the clearance
+    // rule below: the player can point the camera at the water, but the hard rule
+    // still refuses to let it sink into the wave.
+    {
+      const sc = this.state && this.state.camera;
+      const yaw = num(sc && sc.lookYaw, 0);
+      const pitchOff = num(sc && sc.lookPitch, 0);
+      const zoom = clamp(num(sc && sc.zoom, 1), 0.4, 2.6);
+      if (yaw || pitchOff || zoom !== 1) {
+        let ax = (cx - tx) * zoom, ay = (cy - ty) * zoom, az = (cz - tz) * zoom;
+        if (yaw) {
+          const cs = Math.cos(yaw), sn = Math.sin(yaw);
+          const nx = ax * cs + az * sn;
+          az = -ax * sn + az * cs;
+          ax = nx;
+        }
+        if (pitchOff) {
+          const hor = Math.hypot(ax, az);
+          if (hor > 1e-4) {
+            const len = Math.hypot(ax, ay, az) || 1e-4;
+            // Clamp so the rig never flips over the top or under the subject.
+            const next = clamp(Math.atan2(ay, hor) + pitchOff, -0.55, 1.28);
+            const ch = Math.cos(next) * len, cv = Math.sin(next) * len;
+            ax = (ax / hor) * ch; az = (az / hor) * ch; ay = cv;
+          }
+        }
+        cx = tx + ax; cy = ty + ay; cz = tz + az;
+      }
+    }
+
     // ---- HARD RULE: stay out of the water, and keep the surfer visible -------
     const lift = this._clearance(cx, cy, cz, tx, ty, tz, tube);
     const liftS = this._snap ? this.liftD.set(lift) : this.liftD.step(lift, 0.11, dt);

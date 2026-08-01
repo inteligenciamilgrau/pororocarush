@@ -107,6 +107,7 @@ export async function boot_() {
   const post = new Post(ctx);
 
   const input = new Input(state, { capture: captureMode });
+  ctx.input = input;   // hud/menu.js needs it to arbitrate ESC vs pointer lock
   const hud = new HUD(document.getElementById('hud-root'), state, bus, CONFIG);
 
   // Options menu. Skipped entirely under capture so screenshots are never

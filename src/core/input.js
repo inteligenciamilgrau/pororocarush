@@ -1,5 +1,7 @@
 // Keyboard + gamepad → state.input. Deterministic under capture (scripted) mode.
 
+const clampAngle = (v, lim) => (v < -lim ? -lim : v > lim ? lim : v);
+
 const KEYMAP = {
   ArrowLeft: 'left', KeyA: 'left',
   ArrowRight: 'right', KeyD: 'right',
@@ -37,13 +39,115 @@ export class Input {
       window.addEventListener('keydown', this._onDown);
       window.addEventListener('keyup', this._onUp);
       window.addEventListener('blur', this._onBlur);
+      this._initMouse();
     }
+  }
+
+  // ------------------------------------------------------------------- mouse
+  // Drag to orbit, wheel to zoom. Writes state.camera.{lookYaw,lookPitch,zoom};
+  // game/camera.js orbits the rig around its aim point, so the surfer can never
+  // be lost off-frame no matter where the player points.
+  //
+  // Drag-to-look rather than always-on pointer lock: pointer lock hijacks the
+  // cursor the moment you click, which is hostile on a page you might want to
+  // leave. Players who prefer it can turn it on in the options menu.
+  _initMouse() {
+    const st = this.state;
+    this.mouse = { dragging: false, lastX: 0, lastY: 0, idle: 0, locked: false };
+    const canvas = document.getElementById('gl') || window;
+
+    const sens = () => (this.opts?.mouseSensitivity ?? 1) * 0.0038;
+    const invert = () => (this.opts?.invertMouseY ? -1 : 1);
+    const enabled = () => this.opts?.mouseLook !== false;
+
+    const applyDelta = (dx, dy) => {
+      if (!enabled()) return;
+      st.camera.lookYaw = clampAngle(st.camera.lookYaw + dx * sens(), Math.PI * 0.92);
+      st.camera.lookPitch = clampAngle(st.camera.lookPitch - dy * sens() * invert(), 1.05);
+      this.mouse.idle = 0;
+    };
+
+    this._onMouseDown = (e) => {
+      if (e.button !== 0) return;
+      if (!enabled()) return;
+      // Never grab the pointer while the options overlay is up — the player is
+      // trying to click a control, not look around.
+      if (this.state.paused) return;
+      if (this.opts?.pointerLock !== false && canvas.requestPointerLock) {
+        if (document.pointerLockElement !== canvas) {
+          const r = canvas.requestPointerLock();
+          if (r && typeof r.catch === 'function') r.catch(() => { /* user gesture rejected */ });
+        }
+        return;
+      }
+      this.mouse.dragging = true;
+      this.mouse.lastX = e.clientX; this.mouse.lastY = e.clientY;
+    };
+    this._onMouseUp = () => { this.mouse.dragging = false; };
+    this._onMouseMove = (e) => {
+      if (this.mouse.locked) { applyDelta(e.movementX || 0, e.movementY || 0); return; }
+      if (!this.mouse.dragging) return;
+      applyDelta(e.clientX - this.mouse.lastX, e.clientY - this.mouse.lastY);
+      this.mouse.lastX = e.clientX; this.mouse.lastY = e.clientY;
+    };
+    this._onWheel = (e) => {
+      if (!enabled()) return;
+      e.preventDefault();
+      const z = st.camera.zoom * (1 + Math.sign(e.deltaY) * 0.11);
+      st.camera.zoom = Math.min(2.6, Math.max(0.4, z));
+      this.mouse.idle = 0;
+    };
+    this._onLockChange = () => {
+      const was = this.mouse.locked;
+      this.mouse.locked = document.pointerLockElement === canvas;
+      if (!this.mouse.locked) {
+        this.mouse.dragging = false;
+        // The browser releases the pointer on ESC and fires this before our
+        // keydown handler. Mark it so hud/menu.js can let that one ESC go by:
+        // the player meant "give me my cursor back", not "open the menu".
+        if (was) this._lockReleasedAt = performance.now();
+      }
+      this.state.camera.pointerLocked = this.mouse.locked;
+    };
+    this.wasLockReleasedJustNow = () => (performance.now() - (this._lockReleasedAt || -1e9)) < 250;
+    // Middle click snaps the view back to the rig's default framing.
+    this._onAux = (e) => { if (e.button === 1) { e.preventDefault(); this.recenterView(); } };
+
+    window.addEventListener('mousedown', this._onMouseDown);
+    window.addEventListener('mouseup', this._onMouseUp);
+    window.addEventListener('mousemove', this._onMouseMove);
+    window.addEventListener('auxclick', this._onAux);
+    window.addEventListener('wheel', this._onWheel, { passive: false });
+    document.addEventListener('pointerlockchange', this._onLockChange);
+  }
+
+  recenterView() {
+    const c = this.state.camera;
+    c.lookYaw = 0; c.lookPitch = 0; c.zoom = 1;
+  }
+
+  // Eases the view back to default after the player stops looking around, so a
+  // stray drag does not leave the camera stuck at a useless angle forever.
+  _stepMouse(dt) {
+    const m = this.mouse;
+    if (!m || m.dragging || m.locked) return;
+    if (this.opts?.autoRecenter === false) return;
+    const c = this.state.camera;
+    if (!c.lookYaw && !c.lookPitch) return;
+    m.idle += dt;
+    if (m.idle < 1.6) return;
+    const k = Math.min(1, dt * 1.7);
+    c.lookYaw += (0 - c.lookYaw) * k;
+    c.lookPitch += (0 - c.lookPitch) * k;
+    if (Math.abs(c.lookYaw) < 1e-3) c.lookYaw = 0;
+    if (Math.abs(c.lookPitch) < 1e-3) c.lookPitch = 0;
   }
 
   setScripted(on) { this.scripted = !!on; }
 
   step(dt) {
     if (this.scripted) { this.pressed.clear(); return; } // capture.js drives state.input
+    this._stepMouse(dt);
 
     const i = this.state.input;
     const k = this.keys;
@@ -110,5 +214,11 @@ export class Input {
     window.removeEventListener('keydown', this._onDown);
     window.removeEventListener('keyup', this._onUp);
     window.removeEventListener('blur', this._onBlur);
+    window.removeEventListener('mousedown', this._onMouseDown);
+    window.removeEventListener('mouseup', this._onMouseUp);
+    window.removeEventListener('mousemove', this._onMouseMove);
+    window.removeEventListener('auxclick', this._onAux);
+    window.removeEventListener('wheel', this._onWheel);
+    document.removeEventListener('pointerlockchange', this._onLockChange);
   }
 }

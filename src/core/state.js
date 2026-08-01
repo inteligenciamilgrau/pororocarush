@@ -19,12 +19,15 @@ export function createState() {
     },
 
     player: {
-      // world transform
+      // World transform. The run starts mid-ride — already up and trimming — not
+      // from a dead stop at the origin: a surf game has no "start line", and a
+      // zero-velocity spawn leaves the camera rig without a ride axis to orient
+      // itself against, so it cannot know where "behind the surfer" is.
       x: 0, y: 0, z: 0,
-      vx: 0, vy: 0, vz: 0,
-      heading: 0,     // radians, 0 = +Z
+      vx: 0, vy: 0, vz: CONFIG.physics.cruiseSpeed * 0.72,
+      heading: 0,     // radians, 0 = +Z — running with the bore, camera behind
       pitch: 0, roll: 0,
-      speed: 0,       // horizontal speed, m/s
+      speed: CONFIG.physics.cruiseSpeed * 0.72,
       lean: 0,        // -1..1 rail lean, drives board roll and spray
       crouch: 0,      // 0..1, tuck for the tube
 
@@ -91,7 +94,17 @@ export function createState() {
       camCycle: false,
     },
 
-    camera: { mode: 'chase', shake: 0, fov: CONFIG.render.fov },
+    camera: {
+      mode: 'chase',
+      shake: 0,
+      fov: CONFIG.render.fov,
+      // Player look, written by core/input.js and consumed by game/camera.js.
+      // The rig orbits its position around the aim point, so the surfer stays
+      // framed no matter where the player points.
+      lookYaw: 0,     // radians, + orbits right
+      lookPitch: 0,   // radians, + orbits up
+      zoom: 1,        // multiplier on the standoff distance
+    },
 
     debug: { physics: false, wireframe: false, freeze: false },
   };

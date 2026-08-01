@@ -10,6 +10,11 @@ const STORE_KEY = 'pororoca.opts';
 export const DEFAULT_OPTS = {
   invertSteer: false,
   steerSensitivity: 1.0,
+  mouseLook: true,
+  mouseSensitivity: 1.0,
+  invertMouseY: false,
+  autoRecenter: true,
+  pointerLock: true,
   camera: 'chase',
   fov: 58,
   renderScale: 1.0,
@@ -155,6 +160,18 @@ export class Menu {
 #pr-menu .btn.primary{color:#150d05;border-color:#ffcf5e;
   background:linear-gradient(180deg,#ffd24a,#ff9c1c);box-shadow:0 4px 18px rgba(255,140,20,.3)}
 @media (max-width:760px){#pr-menu .cols{grid-template-columns:1fr}}
+
+/* Dica de pointer lock: sem ela ninguem descobre que precisa clicar. */
+#pr-lock{position:fixed;left:50%;bottom:11%;transform:translateX(-50%);z-index:40;
+  display:none;align-items:center;gap:.6rem;padding:.5rem 1.1rem;border-radius:999px;
+  background:rgba(18,10,5,.62);border:1px solid rgba(245,192,51,.3);
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  font-family:'Barlow Condensed','Arial Narrow',sans-serif;color:#f6ead6;
+  font-size:.92rem;letter-spacing:.14em;text-transform:uppercase;
+  pointer-events:none;animation:pr-pulse 2.6s ease-in-out infinite}
+#pr-lock.on{display:flex}
+#pr-lock svg{width:17px;height:17px;fill:#f5c033;flex:0 0 auto}
+@keyframes pr-pulse{0%,100%{opacity:.62}50%{opacity:1}}
 `;
     document.head.appendChild(s);
   }
@@ -185,6 +202,14 @@ export class Menu {
     this.el = el;
     this.bodyEl = el.querySelector('.body');
 
+    const lock = document.createElement('div');
+    lock.id = 'pr-lock';
+    lock.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V7a3 3 0 0 1 3-3z"/></svg><span>Clique para travar o mouse e olhar em volta</span>`;
+    document.body.appendChild(lock);
+    this.lockHint = lock;
+    this._syncLockHint();
+    document.addEventListener('pointerlockchange', () => this._syncLockHint());
+
     el.querySelectorAll('.tabs button').forEach((b) => {
       b.addEventListener('click', () => { this._tab = b.dataset.tab; this._renderTabs(); this._render(); });
     });
@@ -202,6 +227,9 @@ export class Menu {
   _bindKeys() {
     this._onKey = (e) => {
       if (e.code === 'Escape' || e.code === 'KeyP') {
+        // ESC that merely released the pointer lock is the player asking for the
+        // cursor back, not for the menu. Swallow that one.
+        if (e.code === 'Escape' && this.ctx.input?.wasLockReleasedJustNow?.()) return;
         e.preventDefault();
         this.toggle();
       } else if (this.open && e.code === 'Enter') {
@@ -277,6 +305,11 @@ ${rng('steerSensitivity', 'Sensibilidade da direção', 'O quanto a prancha resp
     </optgroup>
   </select></div>
 </div>
+${sw('mouseLook', 'Mouse controla a câmera', 'Arraste para girar em volta do surfista · roda dá zoom · botão do meio recentraliza')}
+${rng('mouseSensitivity', 'Sensibilidade do mouse', 'O quanto a câmera gira por pixel arrastado', 0.3, 2.5, 0.05, (v) => (+v).toFixed(2) + '×')}
+${sw('invertMouseY', 'Inverter eixo Y do mouse', 'Arrastar para baixo olha para cima')}
+${sw('autoRecenter', 'Recentralizar sozinho', 'Volta ao enquadramento padrão depois de 1,6 s parado')}
+${sw('pointerLock', 'Travar o ponteiro', 'Olhar contínuo sem arrastar. ESC libera o cursor')}
 ${rng('fov', 'Campo de visão', 'Maior alarga a cena e exagera a velocidade', 45, 80, 1, (v) => Math.round(v) + '°')}
 ${rng('renderScale', 'Resolução', 'Baixe se o jogo estiver travando', 0.5, 1.0, 0.05, (v) => Math.round(v * 100) + '%')}
 ${sw('showHud', 'Mostrar HUD', 'Pontuação, velocidade, checkpoint e minimapa')}`;
@@ -313,6 +346,18 @@ ${sw('showHud', 'Mostrar HUD', 'Pontuação, velocidade, checkpoint e minimapa')
   _commit() {
     saveOpts(this.opts);
     this.onOptsChange(this.opts);
+    this._syncLockHint();
+  }
+
+  // Only nag when the pointer is actually free, mouse look is on, pointer lock is
+  // the chosen mode, and the menu is not covering the screen anyway.
+  _syncLockHint() {
+    if (!this.lockHint) return;
+    const show = !this.open
+      && this.opts.mouseLook !== false
+      && this.opts.pointerLock !== false
+      && !document.pointerLockElement;
+    this.lockHint.classList.toggle('on', show);
   }
 
   // ------------------------------------------------------------------ state
@@ -321,6 +366,8 @@ ${sw('showHud', 'Mostrar HUD', 'Pontuação, velocidade, checkpoint e minimapa')
   show() {
     this.open = true;
     this.state.paused = true;
+    // Hand the cursor back, or the player cannot click anything in here.
+    if (document.pointerLockElement) document.exitPointerLock?.();
     this.el.classList.add('on');
     this._renderTabs();
     this._render();
@@ -330,6 +377,7 @@ ${sw('showHud', 'Mostrar HUD', 'Pontuação, velocidade, checkpoint e minimapa')
     this.open = false;
     this.state.paused = false;
     this.el.classList.remove('on');
+    this._syncLockHint();
   }
 
   dispose() {
