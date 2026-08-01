@@ -966,7 +966,7 @@ export class Scenery {
     m.instanceMatrix.setUsage(T.DynamicDrawUsage);
     m.frustumCulled = false;
     m.castShadow = !!opts.cast;
-    m.receiveShadow = false;
+    m.receiveShadow = !!opts.receive;
     if (opts.renderOrder) m.renderOrder = opts.renderOrder;
     // Hide everything until the first layout writes real matrices.
     this._c.setHex(0xffffff);
@@ -1307,10 +1307,10 @@ export class Scenery {
     this.geoBox = makeBoxGeo(T, 2, 2);
     this.geoRoof = makeRoofGeo(T);
 
-    this.mPole = this._mkInstanced(this.geoPole, this.matWood, poleCount, { cast: true });
-    this.mWood = this._mkInstanced(this.geoBox, this.matWood, woodCount, { cast: true });
-    this.mPaint = this._mkInstanced(this.geoBox, this.matPaint, paintCount, { cast: true });
-    this.mRoof = this._mkInstanced(this.geoRoof, this.matZinc, roofCount, { cast: true });
+    this.mPole = this._mkInstanced(this.geoPole, this.matWood, poleCount, { cast: true, receive: true });
+    this.mWood = this._mkInstanced(this.geoBox, this.matWood, woodCount, { cast: true, receive: true });
+    this.mPaint = this._mkInstanced(this.geoBox, this.matPaint, paintCount, { cast: true, receive: true });
+    this.mRoof = this._mkInstanced(this.geoRoof, this.matZinc, roofCount, { cast: true, receive: true });
 
     this._villGen = new Int32Array(this.NV).fill(0x7fffffff);
     this._houseInfo = new Float32Array(this.houseSlots * 5); // x, z, deckY, width, colour
@@ -1495,8 +1495,8 @@ export class Scenery {
       [0.62, 0.5, 0.44, 0.42, 0.42, 0.45, 0.52, 0.68, 0.95],
       [0.55, 0.9, 1.0, 1.0, 1.0, 0.98, 0.9, 0.62, 0.18], true);
 
-    this.mCanoe = this._mkInstanced(this.geoCanoe, this.matHull, this.canoeCount, { cast: true });
-    this.mShip = this._mkInstanced(this.geoShip, this.matHull, this.shipCount, { cast: true });
+    this.mCanoe = this._mkInstanced(this.geoCanoe, this.matHull, this.canoeCount, { cast: true, receive: true });
+    this.mShip = this._mkInstanced(this.geoShip, this.matHull, this.shipCount, { cast: true, receive: true });
   }
 
   _updateBoats(zMin, playerZ) {

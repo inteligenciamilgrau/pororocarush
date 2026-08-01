@@ -569,14 +569,21 @@ export class Foam {
                    this.bImpact.mesh, this.bMist.mesh);
     if (this.scene) this.scene.add(this.group);
 
-    // Sun direction, for the cheap mist backlight term.
-    const el = num(L && L.sunElevation, 0.055);
-    const az = num(L && L.sunAzimuth, 0);
-    this.sunDir = new T.Vector3(
-      Math.sin(az) * Math.cos(el),
-      Math.sin(el),
-      Math.cos(az) * Math.cos(el),
-    ).normalize();
+    // Sun direction, for the cheap mist backlight term. Sky owns the actual
+    // direction and publishes a live vector; CONFIG is only the boot fallback.
+    const publishedSun = this.scene && this.scene.userData && this.scene.userData.sunDirection;
+    if (publishedSun && Number.isFinite(publishedSun.x)
+        && Number.isFinite(publishedSun.y) && Number.isFinite(publishedSun.z)) {
+      this.sunDir = publishedSun;
+    } else {
+      const el = num(L && L.sunElevation, 0.055);
+      const az = num(L && L.sunAzimuth, 0);
+      this.sunDir = new T.Vector3(
+        Math.sin(az) * Math.cos(el),
+        Math.sin(el),
+        Math.cos(az) * Math.cos(el),
+      ).normalize();
+    }
   }
 
   _syncFog(fog) {

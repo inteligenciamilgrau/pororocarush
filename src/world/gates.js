@@ -221,18 +221,23 @@ function makeBuoy(THREE, seed) {
     parts.push(rope);
   }
 
-  // --- mast: a banded pole, 4.6 m to the halyard.
-  //     The silhouette IS the gameplay. Alternating dark hardwood and cream
-  //     paint means the pole holds contrast whether it is standing against the
-  //     black jungle or against the blown-out sun road — a single-tone mast
-  //     vanished into whichever of the two it happened to match.
-  const mast = new THREE.CylinderGeometry(0.058, 0.082, 3.85, 7, 14, false);
-  mast.translate(0, 0.74 + 1.925, 0);
+  // --- mast: a 5.2 m pole, dark hardwood with two painted bands.
+  //     The silhouette IS the gameplay, and the mast is the only part of a buoy
+  //     that is still several pixels tall at 120 m. It is MOSTLY DARK on
+  //     purpose: the sun sits at azimuth 0, straight down the channel, so the
+  //     next gate is always somewhere on the sun road and a dark stroke is the
+  //     only thing that survives there. An earlier version alternated dark and
+  //     cream every 65 cm; past ~80 m the bands averaged out to a mid grey that
+  //     matched the water exactly and the pole disappeared.
+  const MAST_LEN = 4.42;
+  const mast = new THREE.CylinderGeometry(0.058, 0.086, MAST_LEN, 7, 16, false);
+  mast.translate(0, 0.74 + MAST_LEN * 0.5, 0);
   paint(THREE, mast, (c, x, y, z) => {
     const g = nz(x * 21 + z * 13, y * 4, seed + 13);
-    const band = Math.floor((y - 0.74) * 1.55) & 1;
-    if (band) c.setHex(0xe0cda8).multiplyScalar(0.84 + g * 0.28);
-    else c.setHex(0x33251a).multiplyScalar(0.72 + g * 0.5);
+    const u = y - 0.74;
+    const band = (u > 1.35 && u < 1.85) || (u > 3.35 && u < 3.85);
+    if (band) c.setHex(0xe4d2ad).multiplyScalar(0.86 + g * 0.26);
+    else c.setHex(0x2a1e14).multiplyScalar(0.70 + g * 0.44);
   });
   parts.push(mast);
 
@@ -908,7 +913,7 @@ export class Gates {
             // the buoy under it resolves into anything.
             const fl = (0.90 + 0.10 * Math.sin(t * 3.3 + b.phase)) * g.emph;
             const o = nl * 3;
-            lc[o] = 4.8 * fl; lc[o + 1] = 3.0 * fl; lc[o + 2] = 1.2 * fl;
+            lc[o] = 6.6 * fl; lc[o + 1] = 4.1 * fl; lc[o + 2] = 1.7 * fl;
           }
           nl++;
         }

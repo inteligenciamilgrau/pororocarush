@@ -284,7 +284,11 @@ export class CameraRig {
       // for a camera you can aim once and forget.
       const rv = this.ctx && this.ctx.river;
       if (rv && typeof rv.tangent === 'function') {
-        const tg = rv.tangent(pz, this._tan || (this._tan = { x: 0, y: 0, z: 1 }));
+        // Evaluate the river in the bore's time-driven reference frame. Two
+        // riders steering to opposite sides share this value, so steering can
+        // no longer rotate the rear rig merely by changing player.z.
+        const refZ = num(this.state && this.state.bore && this.state.bore.z, pz);
+        const tg = rv.tangent(refZ, this._tan || (this._tan = { x: 0, y: 0, z: 1 }));
         const tx0 = num(tg && tg.x, 0), tz0 = num(tg && tg.z, 1);
         const tm = Math.hypot(tx0, tz0);
         if (tm > 1e-3) { rdx = tx0 / tm; rdz = tz0 / tm; } else { rdx = 0; rdz = 1; }
@@ -550,7 +554,11 @@ export class CameraRig {
       out.ay = anchorY + FRAME.aimLift + tube * this._tubeRoof(px, k.t) * 0.30;
       out.roll = -lean * 0.055;
       this._dbgPreFloor = [out.px, out.py, out.pz, out.ax, out.ay, out.az];
-      this._faceFloor(out, k.t, FRAME.faceFloor * (1 - tube));
+      // A locked rear rig must keep the same XZ offset for opposite steering
+      // inputs. The face-floor rescue is position-dependent, so reserve it for
+      // display/free cameras; the hard water-clearance pass below still keeps
+      // every rear camera above the surface.
+      if (!lockBehind) this._faceFloor(out, k.t, FRAME.faceFloor * (1 - tube));
       this._dbgPostFloor = [out.px, out.py, out.pz];
       this._applyPitch(out, num(c.pitch, -0.06) * (1 - tube * 0.5));
     } else if (this.mode === 'front') {

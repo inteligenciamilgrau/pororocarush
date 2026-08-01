@@ -26,10 +26,10 @@
 //     path looking like the same game.
 //   * We therefore never add an OutputPass: it would tone map a second time.
 //
-// Pass chain (3 passes — deliberately short; the capture harness runs on
+// Pass chain (4 passes — deliberately short; the capture harness runs on
 // software GL and every full-screen pass costs real seconds there):
 //
-//   RenderPass  →  UnrealBloomPass  →  GradePass (to screen)
+//   RenderPass  →  UnrealBloomPass  →  GradePass  →  FXAA (to screen)
 //
 // The grade pass folds chromatic aberration, cheap radial motion blur, colour
 // grading, vignette, black point, tone map, sRGB encode and film grain into one
@@ -93,14 +93,6 @@
 //   TAA        — `TAARenderPass` in place of RenderPass, `sampleLevel` 2..3.
 //                Deterministic, so it is safe with the capture harness, but it
 //                multiplies scene draw cost by 2^sampleLevel.
-//   AA         — going through a composer bypasses the canvas' MSAA, so edges
-//                are currently unfiltered. Two fixes, both Phase 2:
-//                (a) `SCENE_SAMPLES = 4` below — but EffectComposer clones the
-//                    target for its ping-pong buffers, so every pass would go
-//                    multisampled too, which is pure waste;
-//                (b) an `FXAAPass` appended AFTER the grade pass (FXAA needs
-//                    sRGB input, and the grade pass is what produces it).
-//                (b) is the cheap one and the right one.
 //   Depth pre-pass / SSAO / motion vectors: skip. Not worth the software-GL bill.
 
 import * as THREE from 'three';
@@ -327,6 +319,63 @@ const GradeShader = {
   `,
 };
 
+// Edge smoothing lost when the scene is rendered through EffectComposer instead
+// of the multisampled canvas. FXAA runs after the grade so it measures contrast
+// in display (sRGB) space and leaves the HDR bloom pipeline untouched.
+const FXAAShader = {
+  name: 'PororocaFXAA',
+  uniforms: {
+    tDiffuse: { value: null },
+    resolution: { value: new THREE.Vector2(1 / 1672, 1 / 941) },
+  },
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */`
+    precision highp float;
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution;
+    varying vec2 vUv;
+
+    void main() {
+      vec3 rgbNW = texture2D(tDiffuse, vUv + vec2(-1.0, -1.0) * resolution).rgb;
+      vec3 rgbNE = texture2D(tDiffuse, vUv + vec2( 1.0, -1.0) * resolution).rgb;
+      vec3 rgbSW = texture2D(tDiffuse, vUv + vec2(-1.0,  1.0) * resolution).rgb;
+      vec3 rgbSE = texture2D(tDiffuse, vUv + vec2( 1.0,  1.0) * resolution).rgb;
+      vec4 rgbaM = texture2D(tDiffuse, vUv);
+      vec3 rgbM = rgbaM.rgb;
+      vec3 luma = vec3(0.299, 0.587, 0.114);
+      float lumaNW = dot(rgbNW, luma);
+      float lumaNE = dot(rgbNE, luma);
+      float lumaSW = dot(rgbSW, luma);
+      float lumaSE = dot(rgbSE, luma);
+      float lumaM = dot(rgbM, luma);
+      float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+      float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+
+      vec2 dir;
+      dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+      dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+      float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * 0.03125, 0.0078125);
+      float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+      dir = clamp(dir * rcpDirMin, vec2(-8.0), vec2(8.0)) * resolution;
+
+      vec3 rgbA = 0.5 * (
+        texture2D(tDiffuse, vUv + dir * (1.0 / 3.0 - 0.5)).rgb +
+        texture2D(tDiffuse, vUv + dir * (2.0 / 3.0 - 0.5)).rgb);
+      vec3 rgbB = rgbA * 0.5 + 0.25 * (
+        texture2D(tDiffuse, vUv + dir * -0.5).rgb +
+        texture2D(tDiffuse, vUv + dir *  0.5).rgb);
+      float lumaB = dot(rgbB, luma);
+      gl_FragColor = vec4((lumaB < lumaMin || lumaB > lumaMax) ? rgbA : rgbB, rgbaM.a);
+    }
+  `,
+};
+
 // =============================================================================
 
 export class Post {
@@ -356,6 +405,7 @@ export class Post {
     this.renderPass = null;
     this.bloom = null;
     this.grade = null;
+    this.fxaa = null;
 
     // Smoothed drivers so blur/shake do not strobe between frames.
     this._blur = 0;
@@ -451,6 +501,13 @@ export class Post {
     this.grade.material.depthWrite = false;
     this.composer.addPass(this.grade);
 
+    // FXAA is the final display-space pass, so EffectComposer sends it to screen.
+    this.fxaa = new ShaderPass(FXAAShader);
+    this.fxaa.material.toneMapped = false;
+    this.fxaa.material.depthTest = false;
+    this.fxaa.material.depthWrite = false;
+    this.composer.addPass(this.fxaa);
+
     // Seed the static uniforms from CONFIG.look.
     const u = this.grade.uniforms;
     u.uVignette.value = clamp(num(L && L.vignette, 0.34), 0, 1);
@@ -496,6 +553,7 @@ export class Post {
     const h = Math.max(1, v.y || this._h);
     this.grade.uniforms.uResolution.value.set(w, h);
     this.grade.uniforms.uAspect.value = w / h;
+    if (this.fxaa) this.fxaa.uniforms.resolution.value.set(1 / w, 1 / h);
   }
 
   // -------------------------------------------------------------------- step
@@ -635,6 +693,7 @@ export class Post {
     this.renderPass = null;
     this.bloom = null;
     this.grade = null;
+    this.fxaa = null;
   }
 
   dispose() {

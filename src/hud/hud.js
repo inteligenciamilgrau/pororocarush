@@ -720,6 +720,9 @@ export class HUD {
   _gatePerfect(p) {
     const m = Math.abs(num(p && (p.margem !== undefined ? p.margem : p.margin), NaN));
     if (!Number.isFinite(m)) return false;
+    // gates.js publishes margem already normalised: 0 is the centre and 1 is
+    // touching either buoy. Only older/raw neighbours send metres.
+    if (m <= 1) return m <= 0.20;
     const w = num(p && p.width, NaN);
     const ref = (Number.isFinite(w) && w > 2) ? w * 0.5 : 1;
     return m <= ref * 0.25;

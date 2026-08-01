@@ -3,9 +3,13 @@
 //   const title = new TitleScreen({
 //     enabled: !captureMode,          // ?capture=1 -> false: a tela nunca aparece
 //     onStart: () => { state.paused = false; },
-//     onStory: () => story.show(),
+//     onStory: () => { title.hide(); story.show(); },
 //   });
 //   if (title.enabled) { state.paused = true; title.show(); }
+//
+// A tela aparece uma vez, depois do boot, e avisa pelo `onStart` — quem pausa e
+// despausa o jogo é o integrador. Em modo captura basta não construí-la (ou
+// passar `enabled:false`): não há detecção de `?capture=1` aqui dentro.
 //
 // DOM puro. Não importa nada do jogo 3D, não lê CONFIG, não toca no renderer.
 // O overlay fica *por cima* da cena já renderizada — a cena é o fundo vivo da

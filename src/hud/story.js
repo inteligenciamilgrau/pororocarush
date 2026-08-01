@@ -44,7 +44,7 @@ const CSS = `
 
 #${ROOT_ID} .panel{
   position:relative;
-  width:min(86em,95vw);max-height:93vh;display:flex;flex-direction:column;
+  width:min(86em,95vw);height:min(64em,93vh);display:flex;flex-direction:column;
   background:linear-gradient(180deg,rgba(33,19,9,.965),rgba(17,10,5,.985));
   border:1px solid rgba(245,192,51,.30);border-radius:.75em;
   box-shadow:0 2em 6em rgba(0,0,0,.66),inset 0 1px 0 rgba(255,220,160,.10);
@@ -70,31 +70,42 @@ const CSS = `
 
 /* ------------------------------------------------------------------ body -- */
 #${ROOT_ID} .body{
-  padding:1.25em 1.8em 1.5em;overflow:auto;overscroll-behavior:contain;
-  scrollbar-width:thin;scrollbar-color:rgba(245,192,51,.45) transparent;
+  position:relative;flex:1;min-height:0;padding:1em 1.2em;overflow:hidden;
 }
-#${ROOT_ID} .body::-webkit-scrollbar{width:.6em}
-#${ROOT_ID} .body::-webkit-scrollbar-track{background:transparent}
-#${ROOT_ID} .body::-webkit-scrollbar-thumb{background:rgba(245,192,51,.38);border-radius:1em}
+#${ROOT_ID} .viewport{width:100%;height:100%;overflow:hidden}
+#${ROOT_ID} .track{
+  display:flex;width:100%;height:100%;transform:translateX(0);
+  transition:transform .42s cubic-bezier(.2,.8,.25,1);will-change:transform;
+}
+#${ROOT_ID} .slide{
+  flex:0 0 100%;width:100%;height:100%;min-width:0;padding:.15em 4.1em;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
 
-#${ROOT_ID} .acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(21em,1fr));gap:1.15em}
-
-#${ROOT_ID} .art{margin:0 0 1.3em}
+#${ROOT_ID} .art{
+  width:100%;height:100%;margin:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;overflow:visible;background:transparent;border:0;
+}
 #${ROOT_ID} .art img{
-  display:block;width:100%;height:auto;border-radius:.4em;
+  display:block;max-width:100%;width:auto;max-height:calc(100% - 3.2em);height:auto;object-fit:contain;border-radius:.4em;
   border:1px solid rgba(245,192,51,.22);box-shadow:0 1em 3em rgba(0,0,0,.5);
 }
 #${ROOT_ID} .art figcaption{
-  margin-top:.5em;font-size:.96em;line-height:1.35;color:#d9c9ae;
+  width:min(68em,100%);margin-top:.7em;font-size:1.02em;line-height:1.35;color:#d9c9ae;
   border-left:.14em solid var(--amber);padding-left:.7em;
 }
 #${ROOT_ID} .art.diagram img{background:#140c06}
 
 #${ROOT_ID} .card{
-  display:flex;flex-direction:column;gap:.7em;padding:.85em .9em 1em;
+  width:min(72em,100%);max-height:100%;display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(18em,.6fr);grid-template-rows:auto 1fr;
+  gap:.8em 1.2em;padding:1em;
   background:linear-gradient(180deg,rgba(255,196,104,.055),rgba(0,0,0,.20));
   border:1px solid rgba(245,192,51,.17);border-radius:.5em;
 }
+#${ROOT_ID} .card>figure{grid-row:1 / 3;align-self:center}
+#${ROOT_ID} .card>.cap{align-self:end}
+#${ROOT_ID} .card>div:last-child{align-self:start}
 #${ROOT_ID} figure{
   margin:0;border-radius:.32em;overflow:hidden;background:#140c06;
   border:1px solid rgba(245,192,51,.14);
@@ -118,7 +129,8 @@ const CSS = `
 /* -------------------------------------------------------------- fact bar -- */
 #${ROOT_ID} .facts{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:.55em 1.4em;
-  margin-top:1.15em;padding-top:1em;border-top:1px solid rgba(245,192,51,.18);
+  width:min(66em,100%);padding:1.4em;border:1px solid rgba(245,192,51,.18);
+  border-radius:.5em;background:linear-gradient(180deg,rgba(255,196,104,.055),rgba(0,0,0,.20));
 }
 #${ROOT_ID} .fact{display:flex;flex-direction:column;gap:.16em}
 #${ROOT_ID} .fact b{
@@ -127,18 +139,30 @@ const CSS = `
 #${ROOT_ID} .fact span{font-size:.98em;line-height:1.3;color:#d9c9ae}
 #${ROOT_ID} .fact i{font-style:italic;color:var(--ink)}
 
+/* ------------------------------------------------------------ navigation -- */
+#${ROOT_ID} .nav{
+  position:absolute;z-index:3;top:50%;width:3.2em;height:3.2em;margin-top:-1.6em;
+  display:grid;place-items:center;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(255,210,90,.72);color:#170d05;
+  background:linear-gradient(180deg,#ffd967,#ff9b1b);
+  box-shadow:0 .35em 1.3em rgba(0,0,0,.48),0 0 1.4em rgba(255,140,20,.22);
+  font:900 1.45em/1 Arial,sans-serif;
+}
+#${ROOT_ID} .nav.prev{left:1.25em}
+#${ROOT_ID} .nav.next{right:1.25em}
+#${ROOT_ID} .nav:hover:not(:disabled){background:linear-gradient(180deg,#ffe68f,#ffad36);transform:scale(1.05)}
+#${ROOT_ID} .nav:disabled{opacity:.22;cursor:default;box-shadow:none}
+#${ROOT_ID} .pager{display:flex;align-items:center;gap:.55em;color:var(--dim)}
+#${ROOT_ID} .dots{display:flex;align-items:center;gap:.34em}
+#${ROOT_ID} .dot{width:.42em;height:.42em;border-radius:50%;background:rgba(255,255,255,.25)}
+#${ROOT_ID} .dot.on{width:1.25em;border-radius:1em;background:var(--amber)}
+#${ROOT_ID} .page-n{min-width:3.7em;text-align:center;font-weight:800;color:#f4dfbd}
+
 /* ---------------------------------------------------------------- footer -- */
 #${ROOT_ID} .foot{
   position:relative;
   display:flex;align-items:center;gap:.8em;padding:.85em 1.8em;
   border-top:1px solid rgba(245,192,51,.18);background:rgba(0,0,0,.24);
-}
-/* Fade over the bottom of the scroll area. Without it nothing signals that the
-   fact bar is below the fold on a 720p screen, and the native thin scrollbar is
-   nearly invisible against the panel edge. */
-#${ROOT_ID} .foot::before{
-  content:'';position:absolute;left:0;right:0;bottom:100%;height:2.4em;
-  pointer-events:none;background:linear-gradient(180deg,rgba(19,11,6,0),rgba(19,11,6,.94));
 }
 #${ROOT_ID} .foot .hint{
   font-size:.82em;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.7;
@@ -160,27 +184,36 @@ const CSS = `
 @media (prefers-reduced-motion:no-preference){
   #${ROOT_ID}.on{animation:pr-story-fade .2s ease both}
   #${ROOT_ID}.on .panel{animation:pr-story-rise .28s cubic-bezier(.2,.8,.3,1) both}
-  #${ROOT_ID} .btn{transition:background .15s ease,transform .08s ease}
+  #${ROOT_ID} .btn,#${ROOT_ID} .nav{transition:background .15s ease,transform .08s ease,opacity .15s ease}
   #${ROOT_ID} .pr-glow{animation:pr-story-glow 5.5s ease-in-out infinite}
 }
 @keyframes pr-story-fade{from{opacity:0}to{opacity:1}}
 @keyframes pr-story-rise{from{opacity:0;transform:translateY(1.6em) scale(.985)}to{opacity:1;transform:none}}
 @keyframes pr-story-glow{0%,100%{opacity:.16}50%{opacity:.34}}
 
-/* Short viewports: give the scroll area everything it can get. */
+/* Short viewports: give the slides everything they can get. */
 @media (max-height:820px){
-  #${ROOT_ID} .panel{max-height:96vh}
+  #${ROOT_ID} .panel{height:96vh}
   #${ROOT_ID} .head{padding:1.1em 1.5em .85em}
-  #${ROOT_ID} .body{padding:1em 1.5em 1.2em}
+  #${ROOT_ID} .body{padding:1em 1.5em .85em}
   #${ROOT_ID} .foot{padding:.7em 1.5em}
   #${ROOT_ID} .card{gap:.55em;padding:.7em .75em .85em}
-  #${ROOT_ID} .facts{margin-top:.9em;padding-top:.8em}
+  #${ROOT_ID} .facts{padding:.9em}
 }
 @media (max-height:560px){
-  #${ROOT_ID} .panel{max-height:98vh}
+  #${ROOT_ID} .panel{height:98vh}
   #${ROOT_ID} .head{padding:.9em 1.4em .8em}
-  #${ROOT_ID} .body{padding:1em 1.4em 1.1em}
+  #${ROOT_ID} .lead{display:none}
+  #${ROOT_ID} .body{padding:.65em 1em}
   #${ROOT_ID} .foot{padding:.6em 1.4em}
+}
+@media (max-width:820px){
+  #${ROOT_ID} .slide{padding:.1em 3.3em}
+  #${ROOT_ID} .card{display:flex;flex-direction:column;gap:.55em;font-size:.88em}
+  #${ROOT_ID} .card>figure{max-height:52%;flex:1}
+  #${ROOT_ID} .card>figure svg{width:100%;height:100%;object-fit:contain}
+  #${ROOT_ID} .nav.prev{left:.75em}
+  #${ROOT_ID} .nav.next{right:.75em}
 }
 `;
 
@@ -568,6 +601,7 @@ export class StoryScreen {
   constructor({ onClose } = {}) {
     this.onClose = onClose || (() => {});
     this.open = false;
+    this.page = 0;
     this._lastFocus = null;
     this._ownsStyle = false;
 
@@ -601,25 +635,30 @@ export class StoryScreen {
     el.setAttribute('aria-hidden', 'true');
 
     const cards = ACTS.map((a) => `
+      <section class="slide" aria-label="Etapa ${a.n}: ${a.title}">
       <article class="card">
         <figure>${a.svg()}</figure>
         <div class="cap"><span class="step" aria-hidden="true">${a.n}</span><h3>${a.title}</h3></div>
         <div>${a.body}</div>
-      </article>`).join('');
+      </article>
+      </section>`).join('');
 
-    // A arte gerada conta a historia; os paineis SVG ficam como fallback para
-    // quando os arquivos faltam ou o jogador esta offline.
+    // As imagens ampliam a narrativa; os desenhos continuam logo abaixo para
+    // explicar o fenômeno em etapas e manter todos os detalhes interativos.
     const art = `
+      <section class="slide slide-art" aria-label="A onda da pororoca">
       <figure class="art hero">
-        <img src="./assets/pororoca-historia.webp" loading="lazy" decoding="async"
-             alt="A pororoca ao por do sol: uma unica onda atravessa o rio inteiro, com a lua cheia baixa no ceu e um povoado de palafitas na margem." />
-        <figcaption>A frente atravessa o rio de margem a margem. A lua no mesmo quadro nao e enfeite &mdash; e ela que levanta a mare que empurra essa parede de agua.</figcaption>
-      </figure>
+        <img src="./assets/pororoca-historia.webp" loading="eager" decoding="async"
+             alt="A pororoca ao pôr do sol: uma única onda atravessa o rio inteiro, com a lua cheia baixa no céu e um povoado de palafitas na margem." />
+        <figcaption>A frente atravessa o rio de margem a margem. A lua no mesmo quadro não é enfeite &mdash; é ela que levanta a maré que empurra essa parede de água.</figcaption>
+      </figure></section>
+      <section class="slide slide-art" aria-label="Da Lua até o rio">
       <figure class="art diagram">
         <img src="./assets/pororoca-historia-infografico.webp" loading="lazy" decoding="async"
-             alt="Infografico em tres partes: Sol, Terra e Lua alinhados deformando os oceanos; a mare entrando pela foz e afunilando; a onda subindo o rio contra a correnteza, com um surfista na face." />
-        <figcaption>Da lua ao rio, em tres passos.</figcaption>
-      </figure>`;
+             alt="Infográfico em três partes: Sol, Terra e Lua alinhados deformando os oceanos; a maré entrando pela foz e afunilando; a onda subindo o rio contra a correnteza, com um surfista na face." />
+        <figcaption>Da lua ao rio, em três passos.</figcaption>
+      </figure></section>`;
+
 
     const facts = FACTS.map((f) => `
       <div class="fact"><b>${f.k}</b><span>${f.v}</span></div>`).join('');
@@ -635,13 +674,26 @@ export class StoryScreen {
   </header>
 
   <div class="body">
-    ${art}
-    <div class="acts" data-fallback hidden>${cards}</div>
-    <div class="facts">${facts}</div>
+    <div class="viewport">
+      <div class="track">
+        ${art}
+        ${cards}
+        <section class="slide" aria-label="Curiosidades sobre a pororoca">
+          <div class="facts">${facts}</div>
+        </section>
+      </div>
+    </div>
+    <button type="button" class="nav prev" data-act="prev" aria-label="Tela anterior">&#10094;</button>
+    <button type="button" class="nav next" data-act="next" aria-label="Próxima tela">&#10095;</button>
   </div>
 
   <footer class="foot">
-    <span class="hint">ESC para voltar</span>
+    <span class="hint">&#8592; &#8594; navegar &middot; ESC para voltar</span>
+    <span class="spacer"></span>
+    <div class="pager" aria-live="polite">
+      <div class="dots" aria-hidden="true"></div>
+      <span class="page-n"></span>
+    </div>
     <span class="spacer"></span>
     <button type="button" class="btn" data-act="close">Voltar</button>
   </footer>
@@ -651,17 +703,18 @@ export class StoryScreen {
     this.el = el;
     this.panel = el.querySelector('.panel');
     this.bodyEl = el.querySelector('.body');
+    this.trackEl = el.querySelector('.track');
+    this.slides = [...el.querySelectorAll('.slide')];
+    this.prevBtn = el.querySelector('[data-act=prev]');
+    this.nextBtn = el.querySelector('[data-act=next]');
+    this.pageN = el.querySelector('.page-n');
+    this.dotsEl = el.querySelector('.dots');
     this.closeBtn = el.querySelector('[data-act=close]');
 
-    // Se alguma imagem falhar, esconde a figura e revela os paineis SVG, para o
-    // jogador offline continuar recebendo a explicacao em vez de caixas vazias.
-    const acts = el.querySelector('[data-fallback]');
-    el.querySelectorAll('.art img').forEach((img) => {
-      const fail = () => { img.closest('figure').hidden = true; if (acts) acts.hidden = false; };
-      if (img.complete) { if (!img.naturalWidth) fail(); }
-      else img.addEventListener('error', fail, { once: true });
-    });
-
+    this.dotsEl.innerHTML = this.slides.map(() => '<i class="dot"></i>').join('');
+    this.dots = [...this.dotsEl.querySelectorAll('.dot')];
+    this.prevBtn.addEventListener('click', () => this._setPage(this.page - 1));
+    this.nextBtn.addEventListener('click', () => this._setPage(this.page + 1));
     this.closeBtn.addEventListener('click', () => this.hide());
     // Backdrop closes; the panel does not.
     el.addEventListener('mousedown', (e) => { if (e.target === el) this.hide(); });
@@ -674,6 +727,12 @@ export class StoryScreen {
       e.preventDefault();
       e.stopPropagation();
       this.hide();
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopPropagation();
+      this._setPage(this.page + (e.key === 'ArrowRight' ? 1 : -1));
       return;
     }
     if (e.key !== 'Tab') return;
@@ -701,6 +760,17 @@ export class StoryScreen {
   }
 
   // ------------------------------------------------------------------ state
+  _setPage(next) {
+    const last = Math.max(0, this.slides.length - 1);
+    this.page = Math.max(0, Math.min(last, Math.round(Number(next) || 0)));
+    this.trackEl.style.transform = `translateX(${-this.page * 100}%)`;
+    this.prevBtn.disabled = this.page === 0;
+    this.nextBtn.disabled = this.page === last;
+    this.pageN.textContent = `${this.page + 1} / ${last + 1}`;
+    this.slides.forEach((slide, i) => slide.setAttribute('aria-hidden', i === this.page ? 'false' : 'true'));
+    this.dots.forEach((dot, i) => dot.classList.toggle('on', i === this.page));
+  }
+
   toggle() { this.open ? this.hide() : this.show(); }
 
   show() {
@@ -711,11 +781,8 @@ export class StoryScreen {
     if (document.pointerLockElement) document.exitPointerLock?.();
     this.el.classList.add('on');
     this.el.setAttribute('aria-hidden', 'false');
-    this.bodyEl.scrollTop = 0;
-    // The scroll container is the reading surface, so it must be tabbable for
-    // keyboard users who need to scroll before they reach the button.
-    this.bodyEl.tabIndex = 0;
-    this.closeBtn.focus({ preventScroll: true });
+    this._setPage(0);
+    this.nextBtn.focus({ preventScroll: true });
   }
 
   hide() {
@@ -734,7 +801,9 @@ export class StoryScreen {
     window.removeEventListener('keydown', this._onKey, true);
     this.el?.remove();
     if (this._ownsStyle) this._styleEl?.remove();
-    this.el = this.panel = this.bodyEl = this.closeBtn = null;
+    this.el = this.panel = this.bodyEl = this.trackEl = this.closeBtn = null;
+    this.prevBtn = this.nextBtn = this.pageN = this.dotsEl = null;
+    this.slides = this.dots = null;
   }
 }
 

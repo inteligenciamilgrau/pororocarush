@@ -14,6 +14,7 @@ import { Foam } from './wave/foam.js';
 import { River } from './world/river.js';
 import { Scenery } from './world/scenery.js';
 import { Obstacles } from './world/obstacles.js';
+import { Gates } from './world/gates.js';
 
 import { SurfPhysics } from './player/physics.js';
 import { TrickSystem } from './player/tricks.js';
@@ -89,6 +90,7 @@ export async function boot_() {
   progress(0.44, 'povoando as margens…');
   const scenery = new Scenery(ctx);
   const obstacles = new Obstacles(ctx);
+  const gates = new Gates(ctx);
 
   progress(0.62, 'encerando a prancha…');
   const surfer = new Surfer(ctx);
@@ -135,7 +137,7 @@ export async function boot_() {
   }
 
   // Order matters: input → physics → tricks → scoring/race → world → visuals.
-  const simSystems = [physics, tricks, scoring, race, obstacles];
+  const simSystems = [physics, tricks, gates, scoring, race, obstacles];
   const viewSystems = [waveMesh, river, scenery, surfer, foam, sky, lighting, rig, post, hud];
 
   // ------------------------------------------------------------- simulation
@@ -229,7 +231,7 @@ export async function boot_() {
     window.PR_UI = { title, story, menu };
   }
 
-  window.PR = { ctx, state, bore, physics, tricks, rig, hud, post, renderer, scene, camera,
+  window.PR = { ctx, state, bore, physics, tricks, gates, rig, hud, post, renderer, scene, camera,
                 pause: () => { state.paused = true; }, resume: () => { state.paused = false; },
                 stop: () => cancelAnimationFrame(rafId) };
   return window.PR;

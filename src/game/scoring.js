@@ -28,18 +28,21 @@ const num = (v, f = 0) => (Number.isFinite(v) ? v : f);
 // report for the list to promote into CONFIG.race / CONFIG.scoring.
 const TUNE = {
   // --- pontos ---
+  // Escala pensada assim: raspar a boia paga só a base (700); costurar o centro
+  // paga 2.500. A precisão é o MAIOR prêmio de um único portal — é ela que
+  // transforma "atravessar" em "pilotar". A sequência é um prêmio de
+  // consistência que só chega perto disso depois de dez portais limpos.
   gateBase: 700,            // por portal atravessado, independente de precisão
-  gatePrecision: 1500,      // extra máximo, todo ele no centro do portal
+  gatePrecision: 1800,      // extra máximo, todo ele no centro do portal
   gatePrecisionPow: 2.2,    // curva do prêmio: >1 concentra o valor perto do centro
-  gateStreakBonus: 300,     // por portal de sequência, somado linearmente
-  gateStreakCap: 12,        // teto de degraus de sequência que ainda rendem bônus
+  gateStreakBonus: 220,     // por portal de sequência, somado linearmente
+  gateStreakCap: 10,        // teto de degraus de sequência que ainda rendem bônus
 
   // --- classificação da passada (margem 0 = centro, 1 = raspou a boia) ---
-  // 0.25 = quarto central do vão. Mesmo número que hud.js pretende usar em
-  // `_gatePerfect` (ver relatório: lá ele está escalado por width/2 e por isso
-  // dá sempre verdadeiro), para os dois textos coincidirem quando aquilo for
-  // corrigido.
-  gatePerfect: 0.25,        // abaixo disso é "PORTAL PERFEITO!"
+  // 0.20 = quinto central do vão. hud.js tem o seu próprio `_gatePerfect` com a
+  // mesma intenção — hoje escalado por width/2, o que o deixa sempre verdadeiro
+  // (ver relatório). Quando aquilo for corrigido os dois textos batem.
+  gatePerfect: 0.20,        // abaixo disso é "PORTAL PERFEITO!"
   gateDefaultMargin: 0.55,  // usada quando gates.js não manda margem
 
   // --- banner ---
