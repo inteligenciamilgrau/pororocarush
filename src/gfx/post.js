@@ -71,6 +71,11 @@
 //   * "scene.fog = null had no effect" — three keys USE_FOG as a shader define.
 //     Clearing scene.fog without `material.needsUpdate = true` leaves every
 //     material still compiled with fog, reading stale uniforms. Fog does work.
+//
+// One trap when re-measuring: `PR_CAPTURE.seek()` re-simulates from the CURRENT
+// state, not from t=0, so the second camera glare.mjs measures in a page is a
+// different stretch of river from the first. Compare like for like — same tool,
+// same camera order — or the numbers will not mean what you think they mean.
 // ---------------------------------------------------------------------------
 //
 // [FASE 2] hooks, all deliberately OFF and unimported so they cost nothing:

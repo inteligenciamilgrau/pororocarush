@@ -10,6 +10,29 @@
 export function installCapture({ ctx, simulate, updateView, render, rig, hud, input, fixedStep }) {
   const { state } = ctx;
 
+  // Pristine copy of the sim state, taken before anything has run. seek() used to
+  // fast-forward from wherever the sim happened to be, so two seek(12) calls in the
+  // same page landed 12 s apart instead of at the same instant — every A/B
+  // measurement taken in one page load was silently comparing different moments.
+  const PRISTINE = JSON.parse(JSON.stringify({
+    time: state.time, frame: state.frame, phase: state.phase, slowmo: state.slowmo,
+    bore: state.bore, player: state.player, trick: state.trick,
+    score: state.score, race: state.race,
+  }));
+
+  function restore() {
+    const p = JSON.parse(JSON.stringify(PRISTINE));
+    state.time = p.time; state.frame = p.frame; state.phase = p.phase; state.slowmo = p.slowmo;
+    Object.assign(state.bore, p.bore);
+    Object.assign(state.player, p.player);
+    Object.assign(state.trick, p.trick);
+    Object.assign(state.score, p.score);
+    Object.assign(state.race, p.race);
+    state.camera.lookYaw = 0; state.camera.lookPitch = 0; state.camera.zoom = 1;
+    ctx.physics?.reset?.();
+    rig?.setMode?.(state.camera.mode);   // re-arms the rig's snap-to-pose
+  }
+
   const api = {
     ready: false,
     version: 1,
@@ -56,6 +79,10 @@ export function installCapture({ ctx, simulate, updateView, render, rig, hud, in
       if (opts.hud !== undefined) api.setHud(!!opts.hud);
 
       if (input && input.setScripted) input.setScripted(true);
+
+      // Always start from t=0 so seek(t) means the same instant every time,
+      // whether it is the first call in a page or the fifth.
+      if (opts.reset !== false) restore();
 
       const steps = Math.round(target / fixedStep);
       const denseFrom = Math.max(0, steps - Math.round(4 / fixedStep)); // last 4 s

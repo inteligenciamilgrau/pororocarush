@@ -53,7 +53,14 @@ const ENV = {
   sigma: 0.04,       // slight extra blur so cloud detail does not alias into gloss
   near: 0.1,
   far: 120,
-  intensity: 0.8,
+  // The IBL is a PMREM of the dome, so it inherits CONFIG.look.skyGain. This
+  // number therefore has to move the *opposite* way whenever skyGain does, or
+  // brightening the sky for contrast silently brightens every water pixel too
+  // (the wave body is at grazing incidence for the chase camera, where the
+  // Fresnel term is near 1 and the environment reflection is most of its shade).
+  // Effective env radiance = dome(skyGain) * intensity; keep that product where
+  // tools/glare.mjs left it. Was 0.8 back when skyGain was implicitly 1.0.
+  intensity: 0.92,
 };
 
 const FILL = {

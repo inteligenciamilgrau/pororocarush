@@ -130,9 +130,9 @@ export const CONFIG = {
     // --- de tras (a familia principal: e de onde se surfa) ---
     pov:      { dist: 0.15, height: 1.58, lookAhead: 15.0, side: 0.0, pitch: 0.01 },
     tail:     { dist: 3.1,  height: 0.72, lookAhead: 12.0, side: 0.0, pitch: 0.03 },
-    chaseLow: { dist: 4.7,  height: 1.35, lookAhead: 10.5, side: 0.45, pitch: -0.02 },
-    chase:    { dist: 6.4,  height: 2.35, lookAhead: 9.0, side: 0.9,  pitch: -0.06 },
-    chaseFar: { dist: 13.5, height: 5.4,  lookAhead: 7.0, side: 2.4,  pitch: -0.15 },
+    chaseLow: { dist: 4.7,  height: 1.35, lookAhead: 10.5, side: 0.0, pitch: -0.02 },
+    chase:    { dist: 6.4,  height: 2.35, lookAhead: 9.0, side: 0.0,  pitch: -0.06 },
+    chaseFar: { dist: 13.5, height: 5.4,  lookAhead: 7.0, side: 0.0,  pitch: -0.15 },
     // --- outros angulos ---
     front:  { dist: 9.5, height: 2.05, lookAhead: -6.0, side: 0.0, pitch: -0.02 },
     side:   { dist: 17.0, height: 4.2, lookAhead: 4.0, side: 15.0, pitch: -0.10 },
@@ -162,7 +162,7 @@ export const CONFIG = {
     skyHorizon: 0xffa64a,
     ambientSky: 0xffbe7a,
     ambientGround: 0x2a1c10,
-    ambientIntensity: 1.55,  // pays back the sun cut without adding to its lobe
+    ambientIntensity: 1.60,  // pays back the sun cut without adding to its lobe
     fogColor: 0xd08a45,
     fogNear: 90,
     fogFar: 2400,
@@ -183,8 +183,8 @@ export const CONFIG = {
     skyGain: 1.50,           // diffuse dome radiance multiplier
     sunGlare: 2.20,          // solar disc — kept hot on purpose, it IS the sun
     sunHalo: 1.20,           // wide forward-scatter halo + horizon hot band
-    exposure: 1.30,          // look trim on top of CONFIG.render.exposure
-    blackPoint: 0.014,       // linear black subtracted before the tone map
+    exposure: 1.12,          // look trim on top of CONFIG.render.exposure
+    blackPoint: 0.020,       // linear black subtracted before the tone map
     saturation: 1.14,        // the frame is amber; saturation is what keeps it
     contrast: 1.03,          // from reading as "washed out" rather than "bright"
     // radius is a mip crossfade, NOT a size: 0.72 weighted the 1/16 and 1/32

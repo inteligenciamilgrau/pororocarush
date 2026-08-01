@@ -57,11 +57,11 @@ const DEFAULT_CAMERA = {
 const SHAPE = {
   // Rear family — closer and lower means faster and rougher, so those framings
   // get more shake, more FOV breathing and snappier damping.
-  pov: { rig: 'follow', smooth: 0.55, aim: 1.00, shake: 1.55, fovGain: 1.35, roll: 1.30 },
-  tail: { rig: 'follow', smooth: 0.72, aim: 0.95, shake: 1.35, fovGain: 1.20, roll: 1.15 },
-  chaseLow: { rig: 'follow', smooth: 0.88, aim: 0.90, shake: 1.15, fovGain: 1.10, roll: 1.05 },
-  chase: { rig: 'follow', smooth: 1.00, aim: 0.85, shake: 1.00, fovGain: 1.00, roll: 1.00 },
-  chaseFar: { rig: 'follow', smooth: 1.55, aim: 0.62, shake: 0.62, fovGain: 0.70, roll: 0.55 },
+  pov: { rig: 'follow', lockBehind: true, smooth: 0.45, aim: 1.00, shake: 0.10, fovGain: 0.12, roll: 0.20},
+  tail: { rig: 'follow', lockBehind: true, smooth: 0.50, aim: 1.00, shake: 0.10, fovGain: 0.12, roll: 0.18},
+  chaseLow: { rig: 'follow', lockBehind: true, smooth: 0.50, aim: 1.00, shake: 0.08, fovGain: 0.10, roll: 0.15},
+  chase: { rig: 'follow', lockBehind: true, smooth: 0.50, aim: 1.00, shake: 0.08, fovGain: 0.10, roll: 0.15},
+  chaseFar: { rig: 'follow', lockBehind: true, smooth: 0.65, aim: 0.95, shake: 0.06, fovGain: 0.08, roll: 0.12},
   front: { rig: 'follow', smooth: 1.20, aim: 0.80, shake: 0.72, fovGain: 0.72, roll: 0.45 },
   side: { rig: 'follow', smooth: 1.45, aim: 0.55, shake: 0.50, fovGain: 0.48, roll: 0.30 },
   aerial: { rig: 'boom', smooth: 2.60, aim: 0.25, shake: 0.14, fovGain: 0.20, roll: 0.12 },
@@ -261,25 +261,68 @@ export class CameraRig {
     let vm = Math.hypot(vdx, vdz);
     if (vm < 0.6) { vdx = Math.sin(heading); vdz = Math.cos(heading); vm = 1; }
     vdx /= vm; vdz /= vm;
-    const bl = FRAME.downLineBlend * (1 - wo * 0.8);
-    let rdx = vdx * (1 - bl) + dlx * bl;
-    let rdz = vdz * (1 - bl) + dlz * bl;
-    let rm = Math.hypot(rdx, rdz);
-    if (rm < 0.2) { rdx = vdx; rdz = vdz; rm = 1; }
+    const shape = SHAPE[this.mode] || SHAPE.chase;
+
+    // Rear cameras sit strictly behind the board's heading. Blending the ride
+    // axis toward the down-the-line direction is right for the display angles —
+    // it keeps the wave composed in frame — but on a chase cam it swings the
+    // camera around the surfer as he crosses the face, which reads as the rig
+    // wandering rather than following. Behind means behind.
+    const bl = shape.lockBehind ? 0 : FRAME.downLineBlend * (1 - wo * 0.8);
+    let rdx, rdz;
+    if (shape.lockBehind) {
+      // Anchored to the RIVER, not to the board's heading. Following the heading
+      // means every carve swings the camera around the surfer — steering ends up
+      // driving the camera, which is not what a chase cam is for. Down-river is a
+      // stable reference; the mouse is the only thing that orbits off it.
+      const rv = this.ctx && this.ctx.river;
+      if (rv && typeof rv.tangent === 'function') {
+        const tg = rv.tangent(pz, this._tan || (this._tan = { x: 0, y: 0, z: 1 }));
+        const tx0 = num(tg && tg.x, 0), tz0 = num(tg && tg.z, 1);
+        const tm = Math.hypot(tx0, tz0);
+        if (tm > 1e-3) { rdx = tx0 / tm; rdz = tz0 / tm; } else { rdx = 0; rdz = 1; }
+      } else {
+        rdx = 0; rdz = 1;   // +Z is the direction the bore travels
+      }
+    } else {
+      rdx = vdx * (1 - bl) + dlx * bl;
+      rdz = vdz * (1 - bl) + dlz * bl;
+      const rm0 = Math.hypot(rdx, rdz);
+      if (rm0 < 0.2) { rdx = vdx; rdz = vdz; }
+    }
+    let rm = Math.hypot(rdx, rdz) || 1;
     rdx /= rm; rdz /= rm;
 
     const baseSmooth = 1 / Math.max(0.5, num(this.cfg.smooth, 6.5));
-    const shape = SHAPE[this.mode] || SHAPE.chase;
     // Wipeout loosens the rig; the tube tightens it.
     const looseness = (1 + wo * 1.15) * (1 - tube * 0.25);
-    const smoothPos = baseSmooth * shape.smooth * looseness;
+    // A locked-behind rig has to hold station through a hard carve. The position
+    // damper is what actually decides that: at full smoothing it lagged a
+    // lock-to-lock reversal so badly the camera swung around to the FRONT of the
+    // surfer (measured alignment -0.44, where +1 is directly behind).
+    const smoothPos = baseSmooth * shape.smooth * looseness
+      * (shape.lockBehind ? 0.3 : 1);
     const smoothAim = smoothPos * num(shape.aim, 0.85);
 
+    // Locked-behind cameras damp the ride axis only enough to take the jitter off.
+    // With the full smoothing the axis lags a hard carve by more than 90 degrees —
+    // measured up to 66 degrees off, and on a reversal the damped vector passes
+    // through the origin and flips, putting the camera in FRONT of the surfer.
+    const rideSmooth = shape.lockBehind
+      ? baseSmooth * 0.16 * (1 + wo * 1.5)
+      : baseSmooth * (1 + wo * 3.0) * shape.smooth;
+
     if (this._snap) this.ride.set(rdx, 0, rdz);
-    else this.ride.step(rdx, 0, rdz, baseSmooth * (1 + wo * 3.0) * shape.smooth, dt);
+    else this.ride.step(rdx, 0, rdz, rideSmooth, dt);
     let sx = this.ride.x.v, sz = this.ride.z.v;
     const sm = Math.hypot(sx, sz);
     if (sm > 1e-3) { sx /= sm; sz /= sm; } else { sx = rdx; sz = rdz; }
+    // Guard against the through-zero flip: if the damped axis ever ends up on the
+    // opposite side of the target, there is no smooth path — snap instead.
+    if (sx * rdx + sz * rdz < 0.15) {
+      sx = rdx; sz = rdz;
+      this.ride.set(rdx, 0, rdz);
+    }
 
     // ---- look-ahead into the turn
     const rideYaw = Math.atan2(sx, sz);
@@ -325,10 +368,16 @@ export class CameraRig {
 
     // Never end up inside the surfer. Done before the lift, and never written back
     // into the damper — otherwise the correction would compound frame after frame.
+    // The floor has to respect framings that are deliberately tight: POV sits at
+    // 0.15 m and the tail cam at 3.1 m. A flat 1.75 m floor shoved those two out
+    // along whatever direction the damper happened to be pointing, which is how
+    // they ended up measuring 7-9 m in FRONT of the surfer.
+    const modeCfg = this.cfg[this.mode] || {};
+    const minSub = Math.min(FRAME.minSubject, Math.max(0.12, num(modeCfg.dist, 6.4) * 0.55));
     const ox = cx - px, oy = cy - py, oz = cz - pz;
     const od = Math.hypot(ox, oy, oz);
-    if (od < FRAME.minSubject && od > 1e-4) {
-      const k = FRAME.minSubject / od;
+    if (od < minSub && od > 1e-4) {
+      const k = minSub / od;
       cx = px + ox * k; cy = py + oy * k; cz = pz + oz * k;
     }
 
@@ -449,13 +498,20 @@ export class CameraRig {
       const c = cfg.chase;
       const dist = num(c.dist, 6.4) * (1 - tube * tt * 0.55) * (1 + air * 0.20) * (1 + wo * 0.42);
       const height = num(c.height, 2.35) * (1 - tube * tt * 0.78) * (1 - wo * 0.48);
+      const lockBehind = !!(SHAPE[this.mode] || SHAPE.chase).lockBehind;
       const side = num(c.side, 0.9) * (1 - tube * 0.6);
       out.px = px - sx * dist + fx * side;
       out.pz = pz - sz * dist + fz * side;
       out.py = anchorY + height;
 
-      const lead = num(c.lookAhead, 9) * (1 + tube * 0.85) + speed * FRAME.speedLead + pocket * FRAME.pocketLead;
-      const bias = FRAME.waveBias * (1 - tube * 0.75) * (1 - wo);
+      const lead = lockBehind
+        ? num(c.lookAhead, 9)
+        : num(c.lookAhead, 9) * (1 + tube * 0.85) + speed * FRAME.speedLead + pocket * FRAME.pocketLead;
+      // waveBias slides the aim toward the flat-water side so the wave fills a
+      // third of frame. That is a composition trick for the display angles; on a
+      // chase cam it makes the framing drift as the surfer moves across the face,
+      // which is exactly the "camera keeps changing position" complaint.
+      const bias = lockBehind ? 0 : FRAME.waveBias * (1 - tube * 0.75) * (1 - wo);
       out.ax = px + sx * lead + fx * bias + tlx + dlx * pocket * 2.0;
       out.az = pz + sz * lead + fz * bias + tlz + dlz * pocket * 2.0;
       out.ay = anchorY + FRAME.aimLift + tube * this._tubeRoof(px, k.t) * 0.30;

@@ -13,7 +13,7 @@ export const DEFAULT_OPTS = {
   mouseLook: true,
   mouseSensitivity: 1.0,
   invertMouseY: false,
-  autoRecenter: true,
+  autoRecenter: false,
   pointerLock: true,
   camera: 'chase',
   fov: 58,
