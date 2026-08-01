@@ -368,6 +368,14 @@ export class CameraRig {
 
     let cx = this.pos.x.v, cy = this.pos.y.v, cz = this.pos.z.v;
     let tx = this.aim.x.v, ty = this.aim.y.v, tz = this.aim.z.v;
+    const _dbg = this._dbg = {
+      mode: this.mode, t,
+      player: [px, py, pz], vel: [vx, vz], heading, speed,
+      rideAxis: [sx, sz], rideTarget: [rdx, rdz],
+      preFloor: this._dbgPreFloor, postFloor: this._dbgPostFloor,
+      desiredPos: [D.px, D.py, D.pz], desiredAim: [D.ax, D.ay, D.az],
+      dampedPos: [cx, cy, cz], dampedAim: [tx, ty, tz],
+    };
     if (!Number.isFinite(cx) || !Number.isFinite(cy) || !Number.isFinite(cz)) {
       cx = D.px; cy = D.py; cz = D.pz; this.pos.set(cx, cy, cz);
     }
@@ -386,6 +394,7 @@ export class CameraRig {
       const k = minSub / od;
       cx = px + ox * k; cy = py + oy * k; cz = pz + oz * k;
     }
+    _dbg.afterMinSub = [cx, cy, cz];
 
     // ---- player look (mouse) -------------------------------------------------
     // Orbits the rig around the aim point instead of swinging the aim, so the
@@ -420,9 +429,12 @@ export class CameraRig {
     }
 
     // ---- HARD RULE: stay out of the water, and keep the surfer visible -------
+    _dbg.afterMouse = [cx, cy, cz];
     const lift = this._clearance(cx, cy, cz, tx, ty, tz, tube);
     const liftS = this._snap ? this.liftD.set(lift) : this.liftD.step(lift, 0.11, dt);
     cy += Math.max(0, num(liftS, 0));
+    _dbg.lift = liftS;
+    _dbg.afterLift = [cx, cy, cz];
 
     // ---- shake ---------------------------------------------------------------
     this._impulse *= Math.exp(-dt * 3.1);
@@ -522,7 +534,9 @@ export class CameraRig {
       out.az = pz + sz * lead + fz * bias + tlz + dlz * pocket * 2.0;
       out.ay = anchorY + FRAME.aimLift + tube * this._tubeRoof(px, k.t) * 0.30;
       out.roll = -lean * 0.055;
+      this._dbgPreFloor = [out.px, out.py, out.pz, out.ax, out.ay, out.az];
       this._faceFloor(out, k.t, FRAME.faceFloor * (1 - tube));
+      this._dbgPostFloor = [out.px, out.py, out.pz];
       this._applyPitch(out, num(c.pitch, -0.06) * (1 - tube * 0.5));
     } else if (this.mode === 'front') {
       const c = cfg.front;

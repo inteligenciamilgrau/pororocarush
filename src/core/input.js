@@ -63,7 +63,10 @@ export class Input {
 
     const applyDelta = (dx, dy) => {
       if (!enabled()) return;
-      st.camera.lookYaw = clampAngle(st.camera.lookYaw + dx * sens(), Math.PI * 0.92);
+      // Yaw is negated: because world +X falls on the LEFT of screen (camera looks
+      // down +Z in a right-handed frame), a raw +dx orbited the view the opposite
+      // way from the drag. Same root cause as the A/D inversion in step().
+      st.camera.lookYaw = clampAngle(st.camera.lookYaw - dx * sens(), Math.PI * 0.92);
       st.camera.lookPitch = clampAngle(st.camera.lookPitch - dy * sens() * invert(), 1.05);
       this.mouse.idle = 0;
     };

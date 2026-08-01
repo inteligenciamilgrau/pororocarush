@@ -7,6 +7,12 @@
 
 const STORE_KEY = 'pororoca.opts';
 
+// Bump this whenever a default changes in a way that a stale saved value would
+// contradict. Preferences are per-origin and survive a cache clear, so a camera
+// mode picked once on localhost kept coming back for good — while the same build
+// served from another origin behaved correctly, which is baffling from the outside.
+const OPTS_VERSION = 2;
+
 export const DEFAULT_OPTS = {
   invertSteer: false,
   steerSensitivity: 1.0,
@@ -26,11 +32,17 @@ export const DEFAULT_OPTS = {
 export function loadOpts() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { /* corrupt or blocked */ }
-  return { ...DEFAULT_OPTS, ...saved };
+  if (saved.__v !== OPTS_VERSION) {
+    try { localStorage.removeItem(STORE_KEY); } catch { /* private mode */ }
+    return { ...DEFAULT_OPTS };
+  }
+  const out = { ...DEFAULT_OPTS, ...saved };
+  delete out.__v;
+  return out;
 }
 
 function saveOpts(opts) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(opts)); } catch { /* private mode */ }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ ...opts, __v: OPTS_VERSION })); } catch { /* private mode */ }
 }
 
 const CONTROLS = [
