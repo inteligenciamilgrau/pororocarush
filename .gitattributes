@@ -1,0 +1,5 @@
+# Normaliza para LF no repositório; o checkout no Windows continua nativo.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.svg text eol=lf

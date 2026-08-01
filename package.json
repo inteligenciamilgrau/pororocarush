@@ -1,0 +1,26 @@
+{
+  "name": "pororoca-rush",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "serve": "node tools/serve.mjs 5179",
+    "check": "node tools/check.mjs",
+    "shots": "node tools/shots.mjs",
+    "playtest": "node tools/playtest.mjs",
+    "blind": "node tools/blind.mjs",
+    "snapshot": "node tools/snapshot.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.56.1",
+    "three": "^0.180.0"
+  },
+  "private": true
+}

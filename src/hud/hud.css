@@ -1,0 +1,552 @@
+/* ==========================================================================
+   POROROCA RUSH — HUD
+   Layout authored 1:1 against imagens_conceito/*.png (reference frame
+   1672 x 941). Every size is expressed in reference pixels multiplied by
+   --s, so the whole overlay scales with the smaller screen dimension and
+   keeps the concept-art proportions at any resolution.
+
+   Scope: everything hangs off .pr-hud (added to #hud-root by hud.js) so the
+   sheet never fights the page. Root is pointer-events:none.
+   ========================================================================== */
+
+.pr-hud {
+  /* one reference pixel, clamped so the HUD never becomes unreadable */
+  --s: max(0.52px, min(100vw / 1672, 100vh / 941));
+
+  --amber:    #f5c033;
+  --amber-hi: #ffd24a;
+  --amber-lo: #ffb02e;
+  --orange:   #ff7a18;
+  --red:      #ea3a10;
+  --ink:      #fdf6ea;
+  --ink-dim:  #cdc0aa;
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 10;
+
+  font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-style: italic;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  /* hard drop shadow — the art sits on bright water and needs the contrast */
+  text-shadow:
+    0 calc(2 * var(--s)) 0 rgba(0, 0, 0, .5),
+    0 calc(2 * var(--s)) calc(9 * var(--s)) rgba(0, 0, 0, .58);
+}
+
+.pr-hud * { box-sizing: border-box; margin: 0; padding: 0; }
+
+.pr-hud.pr-off { display: none; }
+
+/* shared helpers ---------------------------------------------------------- */
+.pr-lab {
+  font-size: calc(21 * var(--s));
+  font-weight: 700;
+  letter-spacing: .085em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* big numerals: subtle top-white / bottom-warm-grey gradient like the art */
+.pr-big {
+  font-weight: 800;
+  letter-spacing: -.004em;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #ffffff 0%, #fdf6ea 50%, #d6cab6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter:
+    drop-shadow(0 calc(2.5 * var(--s)) 0 rgba(0, 0, 0, .55))
+    drop-shadow(0 calc(3 * var(--s)) calc(9 * var(--s)) rgba(0, 0, 0, .6));
+}
+
+.pr-amber { color: var(--amber); }
+
+/* ==========================================================  1. LOGO  ==== */
+.pr-logo {
+  position: absolute;
+  left: calc(24 * var(--s));
+  top: calc(10 * var(--s));
+  width: calc(392 * var(--s));
+  height: calc(160 * var(--s));
+  filter: drop-shadow(0 calc(4 * var(--s)) calc(10 * var(--s)) rgba(0, 0, 0, .55));
+}
+.pr-logo svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* =========================================================  2. SCORE  ==== */
+.pr-score {
+  position: absolute;
+  left: calc(44 * var(--s));
+  top: calc(190 * var(--s));
+}
+.pr-row { display: flex; align-items: baseline; white-space: nowrap; }
+.pr-score .pr-n-score { font-size: calc(48 * var(--s)); line-height: .95; }
+.pr-score .pr-n-best  { font-size: calc(35 * var(--s)); line-height: .95; }
+.pr-pts {
+  font-size: calc(24 * var(--s));
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--amber);
+  margin-left: calc(11 * var(--s));
+}
+.pr-pts-s { font-size: calc(20 * var(--s)); margin-left: calc(9 * var(--s)); }
+.pr-score .pr-row-1 { margin-top: calc(5 * var(--s)); }
+.pr-score .pr-lab-2 { margin-top: calc(19 * var(--s)); }
+.pr-score .pr-row-2 { margin-top: calc(4 * var(--s)); }
+
+/* =========================================================  3. COMBO  ==== */
+.pr-combo {
+  position: absolute;
+  left: calc(44 * var(--s));
+  bottom: calc(104 * var(--s));
+}
+.pr-combo-val {
+  display: flex;
+  align-items: baseline;
+  margin-top: calc(2 * var(--s));
+  color: var(--amber);
+  transform-origin: 12% 80%;
+}
+.pr-combo-val .pr-x {
+  font-size: calc(31 * var(--s));
+  font-weight: 800;
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
+.pr-combo-val .pr-c {
+  font-size: calc(59 * var(--s));
+  font-weight: 900;
+  line-height: .95;
+  letter-spacing: -.01em;
+  margin-left: calc(2 * var(--s));
+}
+
+/* vertical segmented meter: rounded cap on top, chevron tip at the bottom */
+.pr-meter-wrap {
+  margin-top: calc(14 * var(--s));
+  margin-left: calc(6 * var(--s));
+  width: calc(18 * var(--s));
+  height: calc(193 * var(--s));
+  filter:
+    drop-shadow(0 0 calc(2 * var(--s)) rgba(0, 0, 0, .95))
+    drop-shadow(0 calc(3 * var(--s)) calc(7 * var(--s)) rgba(0, 0, 0, .6));
+}
+.pr-meter {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: calc(9 * var(--s)) calc(9 * var(--s)) calc(2 * var(--s)) calc(2 * var(--s));
+  clip-path: polygon(0 0, 100% 0, 100% 93%, 50% 100%, 0 93%);
+  background: linear-gradient(180deg, #6a707a 0%, #4c525b 42%, #33383f 100%);
+}
+.pr-meter-fill {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: calc(var(--fill, 0) * 1%);
+  background: linear-gradient(180deg,
+    #ffe23a 0%, #ffd21e 22%, #f9b81a 46%,
+    #f5811a 70%, #ee4e12 88%, #e62d0b 100%);
+}
+/* segment separators drawn over everything, slightly raked to match the art */
+.pr-meter-grid {
+  position: absolute;
+  left: calc(-4 * var(--s));
+  right: calc(-4 * var(--s));
+  top: calc(-6 * var(--s));
+  bottom: calc(-6 * var(--s));
+  transform: skewY(-2.6deg);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 calc(29.9 * var(--s)),
+    rgba(0, 0, 0, .88) calc(29.9 * var(--s)) calc(32.2 * var(--s)));
+}
+.pr-meter-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 calc(1.6 * var(--s)) rgba(0, 0, 0, .7);
+}
+
+/* =======================================================  4. COMPASS  ==== */
+.pr-compass {
+  position: absolute;
+  left: 50%;
+  top: calc(14 * var(--s));
+  width: calc(580 * var(--s));
+  height: calc(58 * var(--s));
+  transform: translateX(-50%);
+}
+.pr-compass-win {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+.pr-tape {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 100%;
+  transform: translateX(calc(var(--tx, 0) * var(--s)));
+  will-change: transform;
+}
+.pr-tape > span { position: absolute; display: block; }
+
+.pr-ct {
+  width: calc(1.6 * var(--s));
+  margin-left: calc(-.8 * var(--s));
+  background: rgba(253, 246, 234, .92);
+  box-shadow: 0 calc(1 * var(--s)) calc(2 * var(--s)) rgba(0, 0, 0, .8);
+}
+.pr-t1 { top: calc(14.8 * var(--s)); height: calc(2.6 * var(--s)); opacity: .72; }
+.pr-t2 { top: calc(11.5 * var(--s)); height: calc(7.6 * var(--s)); }
+.pr-t3 { top: calc(9.4 * var(--s)); height: calc(11 * var(--s)); width: calc(2.2 * var(--s)); margin-left: calc(-1.1 * var(--s)); }
+
+.pr-cl {
+  top: calc(24 * var(--s));
+  transform: translateX(-50%);
+  font-size: calc(20 * var(--s));
+  font-weight: 800;
+  letter-spacing: .07em;
+  color: var(--ink);
+  white-space: nowrap;
+  text-shadow: 0 calc(2 * var(--s)) calc(5 * var(--s)) rgba(0, 0, 0, .85);
+}
+
+/* baseline rule + minor ticks; masked so it breaks around every label */
+.pr-crule {
+  top: calc(33 * var(--s));
+  height: calc(9.8 * var(--s));
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(253, 246, 234, .82) 0 calc(1.4 * var(--s)),
+      transparent calc(1.4 * var(--s)) calc(28 * var(--s))),
+    linear-gradient(rgba(253, 246, 234, .82), rgba(253, 246, 234, .82))
+      0 100% / 100% calc(1.5 * var(--s)) no-repeat;
+  -webkit-mask-image: repeating-linear-gradient(90deg,
+    transparent 0 calc(20 * var(--s)),
+    #000 calc(20 * var(--s)) calc(232 * var(--s)),
+    transparent calc(232 * var(--s)) calc(252 * var(--s)));
+  mask-image: repeating-linear-gradient(90deg,
+    transparent 0 calc(20 * var(--s)),
+    #000 calc(20 * var(--s)) calc(232 * var(--s)),
+    transparent calc(232 * var(--s)) calc(252 * var(--s)));
+  filter: drop-shadow(0 calc(1.5 * var(--s)) calc(2 * var(--s)) rgba(0, 0, 0, .75));
+}
+
+.pr-cmark {
+  position: absolute;
+  left: 50%;
+  top: calc(8 * var(--s));
+  width: calc(24 * var(--s));
+  height: calc(47 * var(--s));
+  transform: translateX(-50%);
+  filter: drop-shadow(0 calc(2 * var(--s)) calc(4 * var(--s)) rgba(0, 0, 0, .8));
+}
+.pr-cmark svg { display: block; width: 100%; height: 100%; }
+
+/* ====================================================  5. CHECKPOINT  ==== */
+.pr-cp {
+  position: absolute;
+  left: 50%;
+  top: calc(106 * var(--s));
+  transform: translateX(-50%);
+  text-align: center;
+}
+.pr-cp-banner {
+  display: inline-block;
+  background: #f4ecdd;
+  clip-path: polygon(
+    0 0, 100% 0,
+    calc(100% - 8 * var(--s)) 50%, 100% 100%,
+    0 100%, calc(8 * var(--s)) 50%);
+  filter: drop-shadow(0 calc(3 * var(--s)) calc(6 * var(--s)) rgba(0, 0, 0, .65));
+  transition: transform .18s ease-out;
+}
+.pr-cp-banner > span {
+  display: block;
+  margin: 0 calc(7 * var(--s));
+  padding: calc(4 * var(--s)) calc(11 * var(--s)) calc(5 * var(--s));
+  background: linear-gradient(180deg, #ffdc55 0%, #f6c227 42%, #edа810 74%, #e39c0c 100%);
+  background: linear-gradient(180deg, #ffdc55 0%, #f6c227 42%, #eda810 74%, #e39c0c 100%);
+  clip-path: polygon(calc(4 * var(--s)) 0, 100% 0, calc(100% - 4 * var(--s)) 100%, 0 100%);
+  font-size: calc(21 * var(--s));
+  font-weight: 800;
+  letter-spacing: .055em;
+  color: #14100a;
+  text-shadow: 0 calc(1 * var(--s)) 0 rgba(255, 255, 255, .28);
+}
+.pr-cp.pr-hit .pr-cp-banner { transform: scale(1.14); }
+
+.pr-cp-count {
+  margin-top: calc(6 * var(--s));
+  font-size: calc(50 * var(--s));
+  line-height: .95;
+  letter-spacing: .008em;
+}
+.pr-cp-count i { font-style: italic; color: #c9bda9; -webkit-text-fill-color: #c9bda9; padding: 0 calc(2 * var(--s)); }
+.pr-cp-dist {
+  margin-top: calc(5 * var(--s));
+  font-size: calc(21 * var(--s));
+  font-weight: 700;
+  letter-spacing: .075em;
+  color: var(--amber);
+}
+
+/* =========================================================  6. SPEED  ==== */
+.pr-speed {
+  position: absolute;
+  right: calc(29 * var(--s));
+  top: calc(38 * var(--s));
+  text-align: right;
+}
+.pr-speed .pr-lab { padding-right: calc(46 * var(--s)); }
+.pr-speed-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  margin-top: calc(-6 * var(--s));
+}
+.pr-speed-n {
+  font-size: calc(106 * var(--s));
+  line-height: .88;
+  letter-spacing: -.018em;
+}
+.pr-speed-u {
+  font-size: calc(22 * var(--s));
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--amber);
+  margin-left: calc(4 * var(--s));
+}
+.pr-gauge {
+  display: block;
+  width: calc(112 * var(--s));
+  height: calc(28 * var(--s));
+  margin-top: calc(9 * var(--s));
+  margin-left: auto;
+  filter: drop-shadow(0 calc(2 * var(--s)) calc(4 * var(--s)) rgba(0, 0, 0, .7));
+}
+
+/* =====================================================  7. OBJECTIVE  ==== */
+.pr-obj {
+  position: absolute;
+  right: calc(29 * var(--s));
+  top: calc(418 * var(--s));
+  text-align: right;
+}
+.pr-obj-title {
+  position: relative;
+  display: inline-block;
+  margin-right: calc(34 * var(--s));
+  padding-bottom: calc(16 * var(--s));
+  font-size: calc(21 * var(--s));
+  font-weight: 800;
+  letter-spacing: .055em;
+  color: var(--amber);
+  white-space: nowrap;
+}
+.pr-obj-title::after,
+.pr-obj-title::before {
+  content: '';
+  position: absolute;
+  bottom: calc(5 * var(--s));
+  height: calc(2.4 * var(--s));
+  background: var(--amber);
+}
+.pr-obj-title::after  { left: 0; width: calc(30 * var(--s)); }
+.pr-obj-title::before { left: calc(35 * var(--s)); width: calc(8 * var(--s)); }
+
+.pr-obj-goal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(11 * var(--s));
+  font-size: calc(22 * var(--s));
+  font-weight: 800;
+  letter-spacing: .045em;
+  white-space: nowrap;
+}
+.pr-obj-goal svg {
+  display: block;
+  width: calc(23 * var(--s));
+  height: calc(23 * var(--s));
+  flex: none;
+  filter: drop-shadow(0 calc(2 * var(--s)) calc(3 * var(--s)) rgba(0, 0, 0, .7));
+}
+
+/* =======================================================  8. MINIMAP  ==== */
+.pr-map {
+  position: absolute;
+  right: calc(34 * var(--s));
+  bottom: calc(64 * var(--s));
+  width: calc(225 * var(--s));
+  height: calc(225 * var(--s));
+}
+.pr-map canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.pr-map-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: calc(1.7 * var(--s)) solid rgba(253, 246, 234, .72);
+  box-shadow:
+    0 calc(3 * var(--s)) calc(12 * var(--s)) rgba(0, 0, 0, .5),
+    inset 0 0 calc(18 * var(--s)) rgba(0, 0, 0, .35);
+}
+.pr-map-goal {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(26 * var(--s));
+  height: calc(26 * var(--s));
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 calc(2 * var(--s)) calc(4 * var(--s)) rgba(0, 0, 0, .8));
+}
+.pr-map-goal svg { display: block; width: 100%; height: 100%; }
+
+/* =========================================================  9. HINTS  ==== */
+.pr-hints {
+  position: absolute;
+  left: calc(24 * var(--s));
+  bottom: calc(28 * var(--s));
+  display: flex;
+  align-items: center;
+  gap: calc(37 * var(--s));
+}
+.pr-hint { display: flex; align-items: center; gap: calc(11 * var(--s)); }
+.pr-hint em {
+  font-style: italic;
+  font-size: calc(20 * var(--s));
+  font-weight: 800;
+  letter-spacing: .075em;
+  white-space: nowrap;
+}
+.pr-key {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: calc(25 * var(--s));
+  height: calc(25 * var(--s));
+  padding: 0 calc(4 * var(--s));
+  background: var(--ink);
+  color: #14100a;
+  font-size: calc(15 * var(--s));
+  font-weight: 800;
+  letter-spacing: .02em;
+  line-height: 1;
+  text-shadow: none;
+  box-shadow: 0 calc(2 * var(--s)) calc(5 * var(--s)) rgba(0, 0, 0, .6);
+}
+.pr-key-round { border-radius: 50%; width: calc(25 * var(--s)); padding: 0; }
+.pr-key-trig  { border-radius: calc(11 * var(--s)) calc(11 * var(--s)) calc(6 * var(--s)) calc(6 * var(--s)); height: calc(27 * var(--s)); }
+/* analog-stick ring with four notches */
+.pr-key-stick { margin: calc(7 * var(--s)); }
+.pr-key-stick::before {
+  content: '';
+  position: absolute;
+  inset: calc(-6 * var(--s));
+  border-radius: 50%;
+  border: calc(1.6 * var(--s)) solid rgba(253, 246, 234, .92);
+}
+.pr-key-stick::after {
+  content: '';
+  position: absolute;
+  inset: calc(-10 * var(--s));
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -5deg,
+    rgba(253, 246, 234, .95) 0 10deg, transparent 10deg 90deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 58%, #000 60%);
+  mask-image: radial-gradient(circle, transparent 0 58%, #000 60%);
+}
+
+/* ==================================================  10. TRICK BANNER  === */
+.pr-banner {
+  position: absolute;
+  left: 50%;
+  top: calc(258 * var(--s));
+  transform: translateX(-50%);
+  text-align: center;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+.pr-banner-name {
+  font-size: calc(46 * var(--s));
+  font-weight: 900;
+  letter-spacing: .035em;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff6d8 0%, #ffd24a 42%, #ffb02e 72%, #ff7a18 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter:
+    drop-shadow(0 calc(3 * var(--s)) 0 rgba(0, 0, 0, .6))
+    drop-shadow(0 calc(4 * var(--s)) calc(14 * var(--s)) rgba(0, 0, 0, .7));
+}
+.pr-banner-pts {
+  margin-top: calc(3 * var(--s));
+  font-size: calc(27 * var(--s));
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--ink);
+}
+.pr-banner.pr-bad .pr-banner-name {
+  background: linear-gradient(180deg, #ffd9c8 0%, #ff7a4a 45%, #e42d10 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.pr-banner.pr-good .pr-banner-name {
+  background: linear-gradient(180deg, #ffffff 0%, #eafff2 40%, #7fe6b0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* screen flash for checkpoints / wipeouts */
+.pr-flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 50%,
+    rgba(255, 255, 255, 0) 38%, var(--flash, rgba(255, 200, 80, .55)) 100%);
+}
+
+/* ====================================================  finish overlay  === */
+.pr-finish {
+  position: absolute;
+  left: 50%;
+  top: calc(392 * var(--s));
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: calc(30 * var(--s));
+  font-weight: 800;
+  letter-spacing: .16em;
+  color: var(--amber);
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.pr-finish.pr-on { opacity: 1; }

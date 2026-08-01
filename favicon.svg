@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#3a2412"/>
+      <stop offset="52%"  stop-color="#8a4a12"/>
+      <stop offset="100%" stop-color="#e07a16"/>
+    </linearGradient>
+    <radialGradient id="sol" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#fff6d8"/>
+      <stop offset="45%"  stop-color="#ffd24a"/>
+      <stop offset="100%" stop-color="#ff9c1c"/>
+    </radialGradient>
+    <linearGradient id="agua" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#c08a45"/>
+      <stop offset="100%" stop-color="#6b3d16"/>
+    </linearGradient>
+    <linearGradient id="espuma" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0%"   stop-color="#fff8ea"/>
+      <stop offset="55%"  stop-color="#f0dcb4"/>
+      <stop offset="100%" stop-color="#c9ab7e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- fundo -->
+  <rect width="64" height="64" rx="13" fill="url(#ceu)"/>
+
+  <!-- sol baixo, no ponto de fuga do rio -->
+  <circle cx="32" cy="30" r="9.5" fill="url(#sol)"/>
+  <circle cx="32" cy="30" r="15" fill="#ffb02e" opacity=".2"/>
+
+  <!-- selva em silhueta nas duas margens -->
+  <path d="M0 30 l5-7 4 5 4-8 4 7 4-4 3 6v13H0z" fill="#0d1408"/>
+  <path d="M64 30 l-5-7-4 5-4-8-4 7-4-4-3 6v13h24z" fill="#0d1408"/>
+
+  <!-- agua barrenta -->
+  <path d="M0 40h64v24H0z" fill="url(#agua)"/>
+
+  <!-- a pororoca: labio jogando por cima, com o tubo aberto -->
+  <path d="M2 52c8-15 22-21 34-16 6 2.5 9 7 10 12-4-6-10-9-17-8-9 1.5-15 7-19 15z"
+        fill="url(#espuma)"/>
+  <path d="M10 55c6-9 15-13 24-10 4 1.4 7 4 8.5 7-3.5-3.6-8-5.2-13.5-4.4-7 1-12 4.6-15.5 9.4z"
+        fill="#8a5a28" opacity=".55"/>
+
+  <!-- crista quebrando -->
+  <path d="M2 52c8-15 22-21 34-16" fill="none" stroke="#fff8ea" stroke-width="3.4"
+        stroke-linecap="round" opacity=".95"/>
+</svg>

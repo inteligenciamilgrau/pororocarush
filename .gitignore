@@ -1,0 +1,33 @@
+# Dependências — o jogo roda com vendor/three (2 MB), commitado.
+# node_modules só é necessário para as ferramentas de desenvolvimento.
+node_modules/
+
+# Saídas do pipeline de revisão visual. Regeneráveis:
+#   node tools/shots.mjs --v vN     e     node tools/blind.mjs --v vN
+shots/
+compare/
+
+# Snapshots de código por versão — o histórico do git já cumpre esse papel.
+versions/
+
+# Arte conceito: 11 MB de referência, não é necessária para o jogo rodar.
+# Mantenha localmente; é a especificação visual usada pelo crítico da Fase 2.
+imagens_conceito/
+
+# Ruído
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# Chaves do teste cego, se alguém apontar --keydir para dentro do projeto.
+# Elas revelam qual imagem é o jogo e qual é a arte conceito.
+**/blind-key-*.json
+
+# Sondas descartáveis criadas durante depuração
+tools/_*.mjs
+tools/_*.html
