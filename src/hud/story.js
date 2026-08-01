@@ -78,17 +78,6 @@ const CSS = `
 
 #${ROOT_ID} .acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(21em,1fr));gap:1.15em}
 
-#${ROOT_ID} .art{margin:0 0 1.3em}
-#${ROOT_ID} .art img{
-  display:block;width:100%;height:auto;border-radius:.4em;
-  border:1px solid rgba(245,192,51,.22);box-shadow:0 1em 3em rgba(0,0,0,.5);
-}
-#${ROOT_ID} .art figcaption{
-  margin-top:.5em;font-size:.96em;line-height:1.35;color:#d9c9ae;
-  border-left:.14em solid var(--amber);padding-left:.7em;
-}
-#${ROOT_ID} .art.diagram img{background:#140c06}
-
 #${ROOT_ID} .card{
   display:flex;flex-direction:column;gap:.7em;padding:.85em .9em 1em;
   background:linear-gradient(180deg,rgba(255,196,104,.055),rgba(0,0,0,.20));
@@ -299,34 +288,35 @@ function svgMouth() {
 
   <!-- ocean tide arriving: wide, loose, spread out -->
   <g stroke="#f5c033" stroke-width="2" opacity=".8" marker-end="url(#prs2-ar)">
-    <line x1="316" y1="36" x2="270" y2="42"/>
-    <line x1="316" y1="60" x2="270" y2="62"/>
-    <line x1="316" y1="86" x2="270" y2="84"/>
-    <line x1="316" y1="112" x2="270" y2="106"/>
+    <line x1="314" y1="48" x2="272" y2="52"/>
+    <line x1="314" y1="74" x2="272" y2="74"/>
+    <line x1="314" y1="100" x2="272" y2="96"/>
   </g>
   <!-- squeezed by the funnel -->
   <g stroke="#f5c033" stroke-width="2.4" opacity=".95" marker-end="url(#prs2-ar)">
-    <line x1="256" y1="46" x2="214" y2="58"/>
-    <line x1="256" y1="74" x2="214" y2="74"/>
-    <line x1="256" y1="102" x2="214" y2="90"/>
+    <line x1="258" y1="48" x2="216" y2="58"/>
+    <line x1="258" y1="74" x2="216" y2="74"/>
+    <line x1="258" y1="100" x2="216" y2="90"/>
   </g>
 
   <!-- the wave front: one line of foam across the whole channel -->
-  <path d="M170,36 Q142,74 166,114" fill="none" stroke="#e8d6b4" stroke-width="15" opacity=".22"/>
-  <path d="M170,36 Q142,74 166,114" fill="none" stroke="#e8d6b4" stroke-width="6" stroke-linecap="round"/>
+  <path d="M172,34 Q144,74 168,116" fill="none" stroke="#e8d6b4" stroke-width="15" opacity=".22"/>
+  <path d="M172,34 Q144,74 168,116" fill="none" stroke="#e8d6b4" stroke-width="6" stroke-linecap="round"/>
 
-  <!-- and one thick arrow ahead of it: everything is a single push now -->
-  <line x1="146" y1="74" x2="34" y2="74" stroke="#f5c033" stroke-width="9" marker-end="url(#prs2-ar)"/>
-  <text x="92" y="62" text-anchor="middle" font-size="12" font-weight="800"
+  <!-- and one thick arrow ahead of it: everything is a single push now.
+       Head drawn by hand — a marker would scale with the 9-wide stroke. -->
+  <line x1="148" y1="74" x2="64" y2="74" stroke="#f5c033" stroke-width="9"/>
+  <path d="M36,74 L66,60 L66,88 Z" fill="#f5c033"/>
+  <text x="104" y="56" text-anchor="middle" font-size="12" font-weight="800"
         letter-spacing="1.8" fill="#f5c033">RIO ACIMA</text>
 
   <text x="150" y="22" text-anchor="middle" font-size="12" font-weight="800"
         letter-spacing="1.6" fill="#f5c033">O CANAL AFUNILA</text>
-  <text x="308" y="140" text-anchor="end" font-size="11" font-weight="800"
-        letter-spacing="1.8" fill="#e8d6b4">ATLÂNTICO</text>
-  <text x="196" y="138" text-anchor="middle" font-size="10.5" font-weight="700"
+  <text x="306" y="30" text-anchor="end" font-size="11" font-weight="800"
+        letter-spacing="1.8" fill="#f0dcb8">ATLÂNTICO</text>
+  <text x="192" y="138" text-anchor="middle" font-size="10.5" font-weight="700"
         letter-spacing="1" fill="#e8d6b4">FRENTE DA ONDA</text>
-  <path d="M180,131 L166,112" stroke="#e8d6b4" stroke-width="1.1" opacity=".7" fill="none"/>
+  <path d="M178,131 L168,114" stroke="#e8d6b4" stroke-width="1.1" opacity=".7" fill="none"/>
 
   <!-- === section along the channel, y 160..240 === -->
   <line x1="0" y1="157" x2="320" y2="157" stroke="#f5c033" stroke-width="1" opacity=".25"/>
@@ -334,18 +324,23 @@ function svgMouth() {
         letter-spacing="1.4" fill="#f5c033">…E O FUNDO SOBE</text>
 
   <path d="M0,186 H320 V234 C258,229 198,220 140,211 C96,204 46,200 0,198 Z" fill="url(#prs2-deep)"/>
-  <path d="M0,240 H320 V234 C258,229 198,220 140,211 C96,204 46,200 0,198 V240 Z" fill="#3b2410"/>
+  <path d="M0,240 H320 V234 C258,229 198,220 140,211 C96,204 46,200 0,198 V240 Z" fill="#241407"/>
   <path d="M0,198 C46,200 96,204 140,211 C198,220 258,229 320,234"
         fill="none" stroke="#c08a45" stroke-width="2"/>
-  <line x1="0" y1="186" x2="320" y2="186" stroke="#e8d6b4" stroke-width="1.6" opacity=".75"/>
+  <line x1="0" y1="186" x2="320" y2="186" stroke="#f5e3c2" stroke-width="1.6" opacity=".8"/>
 
-  <!-- depth gauges: deep at the sea end, shallow upriver -->
-  <g stroke="#e8d6b4" stroke-width="1.4" opacity=".85"
-     marker-start="url(#prs2-arS)" marker-end="url(#prs2-arS)">
-    <line x1="282" y1="188" x2="282" y2="230"/>
-    <line x1="46" y1="188" x2="46" y2="198"/>
+  <!-- depth gauges: deep at the sea end, shallow upriver.
+       Plain caps, not arrowheads — the shallow one is 10 units tall and two
+       heads that size simply collide into a blob. -->
+  <g stroke="#f5c033" stroke-width="1.5">
+    <line x1="288" y1="188" x2="288" y2="230"/>
+    <line x1="283" y1="188" x2="293" y2="188"/><line x1="283" y1="230" x2="293" y2="230"/>
+    <line x1="40" y1="188" x2="40" y2="199"/>
+    <line x1="35" y1="188" x2="45" y2="188"/><line x1="35" y1="199" x2="45" y2="199"/>
   </g>
-  <text x="160" y="216" text-anchor="middle" font-size="10" font-weight="700"
+  <text x="60" y="196" font-size="9.5" font-weight="800" letter-spacing="1.2" fill="#f5c033">RASO</text>
+  <text x="278" y="212" text-anchor="end" font-size="9.5" font-weight="800" letter-spacing="1.2" fill="#f5c033">FUNDO</text>
+  <text x="160" y="228" text-anchor="middle" font-size="10" font-weight="700"
         letter-spacing=".8" fill="#f0dcb8">A ÁGUA NÃO TEM PARA ONDE ESCOAR</text>
 </svg>`;
 }
@@ -363,100 +358,124 @@ function svgBore() {
       <stop offset="0" stop-color="#2a1809"/><stop offset=".42" stop-color="#a04d14"/>
       <stop offset=".78" stop-color="#ff7a18"/><stop offset="1" stop-color="#ffb64a"/>
     </linearGradient>
+    <!-- the river surface receding into the distance: pale, sun-glazed -->
     <linearGradient id="prs3-far" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#c08a45"/><stop offset="1" stop-color="#8a5a28"/>
+      <stop offset="0" stop-color="#e0ab68"/><stop offset="1" stop-color="#b8813e"/>
     </linearGradient>
+    <!-- the water body in section: much darker, so the wave reads as a mass -->
     <linearGradient id="prs3-water" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#b0783c"/><stop offset=".55" stop-color="#8a5a28"/>
-      <stop offset="1" stop-color="#4a2f14"/>
+      <stop offset="0" stop-color="#96622a"/><stop offset=".45" stop-color="#6b4520"/>
+      <stop offset="1" stop-color="#33200c"/>
     </linearGradient>
-    <marker id="prs3-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#f5c033"/>
-    </marker>
     <marker id="prs3-arD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#e8d6b4"/>
     </marker>
   </defs>
 
   <rect width="320" height="240" fill="#140c06"/>
-  <rect width="320" height="76" fill="url(#prs3-sky)"/>
-  <circle cx="252" cy="62" r="15" fill="#ffe6b0" opacity=".95"/>
+  <rect width="320" height="72" fill="url(#prs3-sky)"/>
+  <circle cx="254" cy="60" r="15" fill="#ffe6b0" opacity=".95"/>
 
   <!-- jungle in silhouette, the way the concept art has it -->
-  <path d="M0,78 V62 c7,-5 12,2 18,-7 c6,-9 13,1 19,-4 c7,-6 13,7 21,2 c8,-5 13,6 21,2
-           c8,-4 13,7 21,3 c10,-5 15,6 25,2 c10,-4 15,7 25,3 c10,-4 15,5 25,1
-           c10,-4 15,7 25,3 c10,-4 15,5 25,1 c10,-4 19,8 29,4 c6,-2 10,-5 14,-7 V78 Z"
+  <path d="M0,80 V60 c7,-4 12,2 18,-6 c6,-8 13,1 19,-3 c7,-5 13,6 21,2 c8,-4 13,5 21,2
+           c8,-3 13,6 21,3 c10,-4 15,5 25,2 c10,-3 15,6 25,3 c10,-3 15,4 25,1
+           c10,-3 15,6 25,3 c10,-3 15,4 25,1 c10,-3 19,7 29,4 c6,-2 10,-4 14,-6 V80 Z"
         fill="#101a10"/>
-  <rect x="0" y="76" width="320" height="9" fill="#33200e"/>
-  <!-- the river surface stretching away, ahead of the wave -->
-  <rect x="0" y="84" width="320" height="156" fill="url(#prs3-far)"/>
-  <g stroke="#e8d6b4" opacity=".16" stroke-width="1.2">
-    <path d="M6,96 H88 M22,104 H74 M232,96 H310 M256,104 H300"/>
+  <!-- a few palms breaking the canopy line -->
+  <g fill="#101a10">
+    <path d="M44,60 l1.6,-14 M45,46 c-5,-4 -9,-3 -11,1 c4,-2 8,-1 11,1 c3,-4 8,-5 12,-2 c-4,-3 -9,-3 -12,0 z"
+          stroke="#101a10" stroke-width="1.6"/>
+    <path d="M148,58 l1.4,-15 M149,43 c-6,-4 -10,-3 -12,2 c5,-3 9,-2 12,1 c4,-4 9,-5 13,-2 c-4,-3 -10,-4 -13,-1 z"
+          stroke="#101a10" stroke-width="1.6"/>
+    <path d="M296,60 l1.4,-13 M297,47 c-5,-4 -9,-3 -11,1 c4,-2 8,-1 11,1 c3,-4 8,-4 11,-2 c-3,-3 -8,-3 -11,0 z"
+          stroke="#101a10" stroke-width="1.6"/>
   </g>
+  <rect x="0" y="78" width="320" height="9" fill="#33200e"/>
 
-  <!-- direction of travel: upriver, to the left -->
-  <line x1="102" y1="104" x2="22" y2="104" stroke="#f5c033" stroke-width="6"
-        marker-end="url(#prs3-ar)"/>
-  <text x="62" y="94" text-anchor="middle" font-size="12" font-weight="800"
-        letter-spacing="1.8" fill="#f5c033">RIO ACIMA</text>
+  <!-- the river surface stretching away, ahead of the wave -->
+  <rect x="0" y="86" width="320" height="154" fill="url(#prs3-far)"/>
+
+  <!-- direction of travel: upriver, to the left.
+       Arrowheads are drawn by hand — SVG markers scale with stroke-width, and an
+       8-wide shaft turns a 5-unit marker into a 40-unit triangle that eats the label. -->
+  <line x1="84" y1="112" x2="50" y2="112" stroke="#f5c033" stroke-width="8"/>
+  <path d="M20,112 L52,99 L52,125 Z" fill="#f5c033"/>
+  <text x="56" y="94" text-anchor="middle" font-size="12" font-weight="800"
+        letter-spacing="1.8" fill="#f5c033"
+        paint-order="stroke" stroke="#2a1608" stroke-width="3.4" stroke-linejoin="round">RIO ACIMA</text>
 
   <!-- the wave train behind the front -->
   <text x="252" y="98" text-anchor="middle" font-size="10.5" font-weight="700"
-        letter-spacing="1.2" fill="#f0dcb8">TREM DE ONDAS</text>
+        letter-spacing="1.2" fill="#3a2410">TREM DE ONDAS</text>
   <path d="M196,104 H308 M196,104 V109 M308,104 V109"
-        fill="none" stroke="#f0dcb8" stroke-width="1.1" opacity=".55"/>
+        fill="none" stroke="#3a2410" stroke-width="1.2" opacity=".7"/>
 
   <!-- the bore: a step up in water level, a steep face, a decaying train -->
-  <path d="M0,240 L0,171 C30,170 70,169 108,169 C120,169 125,164 129,156
-           C134,144 139,120 149,105 C152,100 155,98 158,99
-           C163,103 167,115 172,125 C178,137 186,141 194,134
-           C200,129 203,117 209,115 C216,113 221,127 227,135
-           C232,142 239,141 244,133 C248,127 251,120 256,119
-           C262,118 266,128 271,134 C276,140 282,139 287,132
-           C291,127 294,124 299,124 C305,124 310,130 315,132
-           L320,133 L320,240 Z"
+  <path d="M0,240 L0,170 C26,169 62,168 100,168 C112,168 118,165 124,158
+           C131,148 138,124 150,108 C154,103 159,100 163,102
+           C168,107 172,118 177,128 C183,140 191,144 199,137
+           C205,132 208,120 214,118 C221,116 226,130 232,138
+           C237,145 244,144 249,136 C253,130 256,123 261,122
+           C267,121 271,131 276,137 C281,143 287,142 292,135
+           C296,130 299,127 304,127 C309,127 314,132 318,134
+           L320,135 L320,240 Z"
         fill="url(#prs3-water)"/>
+  <!-- the still water level ahead of it: the step is the whole point -->
+  <line x1="0" y1="168" x2="104" y2="168" stroke="#f5e3c2" stroke-width="1.6" opacity=".55"/>
 
   <!-- foam: cream, never white -->
-  <path d="M126,158 C133,140 141,116 152,102 C158,110 166,124 174,140"
-        fill="none" stroke="#e8d6b4" stroke-width="16" opacity=".20" stroke-linecap="round"/>
-  <path d="M128,156 C135,138 143,116 153,102 C159,110 166,124 173,138"
-        fill="none" stroke="#e8d6b4" stroke-width="6" stroke-linecap="round"/>
-  <ellipse cx="137" cy="150" rx="8" ry="4" fill="#e8d6b4" opacity=".45"/>
-  <ellipse cx="166" cy="128" rx="7" ry="3.4" fill="#e8d6b4" opacity=".38"/>
-  <ellipse cx="180" cy="140" rx="9" ry="3.6" fill="#e8d6b4" opacity=".3"/>
-  <path d="M202,117 C206,114 213,114 217,118" fill="none" stroke="#e8d6b4" stroke-width="3"
+  <path d="M122,161 C129,146 137,124 150,108 C154,103 159,100 163,102 C168,108 173,119 178,130"
+        fill="none" stroke="#e8d6b4" stroke-width="10" opacity=".13" stroke-linecap="round"/>
+  <path d="M123,159 C130,145 138,124 150,108 C154,103 159,100 163,102 C168,108 172,119 177,129"
+        fill="none" stroke="#e8d6b4" stroke-width="5.4" stroke-linecap="round"/>
+  <ellipse cx="131" cy="154" rx="7" ry="3.4" fill="#e8d6b4" opacity=".32"/>
+  <ellipse cx="176" cy="131" rx="6" ry="3" fill="#e8d6b4" opacity=".3"/>
+  <path d="M207,120 C211,117 218,117 222,121" fill="none" stroke="#e8d6b4" stroke-width="3"
         stroke-linecap="round" opacity=".8"/>
-  <path d="M249,121 C253,118 259,118 263,122" fill="none" stroke="#e8d6b4" stroke-width="2.4"
+  <path d="M254,124 C258,121 264,121 268,125" fill="none" stroke="#e8d6b4" stroke-width="2.4"
         stroke-linecap="round" opacity=".6"/>
-  <path d="M293,126 C296,124 301,124 304,126" fill="none" stroke="#e8d6b4" stroke-width="1.9"
+  <path d="M297,129 C300,127 305,127 308,129" fill="none" stroke="#e8d6b4" stroke-width="1.9"
         stroke-linecap="round" opacity=".45"/>
 
-  <!-- the surfer, small on the face — the same scene the game renders -->
-  <g transform="translate(140,133) rotate(-32) scale(1.35)">
-    <ellipse cx="0" cy="9.6" rx="12" ry="2.6" fill="#e8d6b4" opacity=".6"/>
-    <ellipse cx="0" cy="8.6" rx="10.6" ry="2" fill="#241505"/>
-    <circle cx="1.6" cy="-4.6" r="2.3" fill="#160d05"/>
+  <!-- the surfer, small on the face — the same scene the game renders.
+       A cream halo underneath, or a dark silhouette on dark water disappears. -->
+  <g transform="translate(145,137) rotate(-36) scale(1.4)">
+    <g fill="none" stroke="#f5e3c2" stroke-width="4.6" stroke-linecap="round"
+       stroke-linejoin="round" opacity=".5">
+      <path d="M0,8.6 h.1 M1.6,-4.6 h.1"/>
+      <path d="M1.4,-2.4 L0.4,2.6 L-3.4,7.6 M0.4,2.6 L4.4,7.8 M1.4,-1.8 L-4.6,.8 M1.4,-1.8 L6.6,0"/>
+    </g>
+    <ellipse cx="0" cy="9.6" rx="12" ry="2.8" fill="#f5e3c2" opacity=".7"/>
+    <ellipse cx="0" cy="8.6" rx="10.6" ry="2" fill="#1a1006"/>
+    <circle cx="1.6" cy="-4.6" r="2.3" fill="#1a1006"/>
     <path d="M1.4,-2.4 L0.4,2.6 L-3.4,7.6 M0.4,2.6 L4.4,7.8 M1.4,-1.8 L-4.6,.8 M1.4,-1.8 L6.6,0"
-          fill="none" stroke="#160d05" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+          fill="none" stroke="#1a1006" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
   <!-- height — stated the only honest way, qualitatively -->
-  <line x1="116" y1="102" x2="116" y2="169" stroke="#f5c033" stroke-width="1.6"
-        marker-start="url(#prs3-ar)" marker-end="url(#prs3-ar)"/>
-  <line x1="110" y1="102" x2="122" y2="102" stroke="#f5c033" stroke-width="1.6" opacity=".85"/>
-  <line x1="110" y1="169" x2="122" y2="169" stroke="#f5c033" stroke-width="1.6" opacity=".85"/>
-  <text transform="translate(106,136) rotate(-90)" text-anchor="middle" font-size="10"
-        font-weight="800" letter-spacing="1.2" fill="#f5c033">ALGUNS METROS</text>
+  <g stroke="#f5c033" stroke-width="1.6">
+    <line x1="108" y1="104" x2="108" y2="168"/>
+    <line x1="102" y1="104" x2="114" y2="104"/>
+    <line x1="102" y1="168" x2="114" y2="168"/>
+  </g>
+  <path d="M108,102 L104,112 L112,112 Z M108,170 L104,160 L112,160 Z" fill="#f5c033"/>
+  <text transform="translate(96,136) rotate(-90)" text-anchor="middle" font-size="10"
+        font-weight="800" letter-spacing="1.2" fill="#f5c033"
+        paint-order="stroke" stroke="#2a1608" stroke-width="3" stroke-linejoin="round">ALGUNS METROS</text>
 
   <!-- and the current, running the other way -->
-  <line x1="92" y1="206" x2="204" y2="206" stroke="#e8d6b4" stroke-width="2.6" opacity=".6"
+  <line x1="94" y1="196" x2="192" y2="196" stroke="#e8d6b4" stroke-width="2.6" opacity=".65"
         marker-end="url(#prs3-arD)"/>
-  <text x="148" y="198" text-anchor="middle" font-size="10.5" font-weight="700"
-        letter-spacing="1.4" fill="#e8d6b4" opacity=".85">A CORRENTEZA DESCE</text>
+  <text x="146" y="188" text-anchor="middle" font-size="10.5" font-weight="700"
+        letter-spacing="1.4" fill="#e8d6b4" opacity=".9">A CORRENTEZA DESCE</text>
 
-  <text x="160" y="230" text-anchor="middle" font-size="10" font-weight="600"
-        letter-spacing=".3" fill="#dcc8a4" opacity=".9">Corte lateral: a onda vem do mar, à direita, e sobe contra a corrente.</text>
+  <!-- riverbed: this is a section, and the wave is nearly as tall as the river is deep -->
+  <path d="M0,240 H320 V231 C250,228 180,224 110,221 C72,219 34,218 0,217 Z" fill="#241407"/>
+  <path d="M0,217 C34,218 72,219 110,221 C180,224 250,228 320,231"
+        fill="none" stroke="#6b4520" stroke-width="1.8"/>
+
+  <text x="160" y="235" text-anchor="middle" font-size="10" font-weight="600"
+        letter-spacing=".3" fill="#dcc8a4" opacity=".95">Corte lateral: a onda vem do mar, à direita, e sobe contra a corrente.</text>
 </svg>`;
 }
 
@@ -563,24 +582,6 @@ export class StoryScreen {
     const facts = FACTS.map((f) => `
       <div class="fact"><b>${f.k}</b><span>${f.v}</span></div>`).join('');
 
-    // Generated art carries the telling; the SVG frames below stay as a fallback
-    // for when the files are missing or the player is offline.
-    const art = `
-      <figure class="art hero">
-        <img src="./assets/pororoca-historia.webp" loading="lazy" decoding="async"
-             alt="A pororoca ao pôr do sol: uma única onda atravessa o rio inteiro,
-                  com a lua cheia baixa no céu e um povoado de palafitas na margem." />
-        <figcaption>A frente atravessa o rio de margem a margem. A lua no mesmo quadro
-          não é enfeite — é ela que levanta a maré que empurra essa parede de água.</figcaption>
-      </figure>
-      <figure class="art diagram">
-        <img src="./assets/pororoca-historia-infografico.webp" loading="lazy" decoding="async"
-             alt="Infográfico em três partes: Sol, Terra e Lua alinhados deformando os
-                  oceanos; a maré entrando pela foz e afunilando; a onda subindo o rio
-                  contra a correnteza, com um surfista na face." />
-        <figcaption>Da lua ao rio, em três passos.</figcaption>
-      </figure>`;
-
     el.innerHTML = `
 <div class="panel">
   <header class="head">
@@ -592,8 +593,7 @@ export class StoryScreen {
   </header>
 
   <div class="body">
-    ${art}
-    <div class="acts" data-fallback hidden>${cards}</div>
+    <div class="acts">${cards}</div>
     <div class="facts">${facts}</div>
   </div>
 
@@ -609,22 +609,6 @@ export class StoryScreen {
     this.panel = el.querySelector('.panel');
     this.bodyEl = el.querySelector('.body');
     this.closeBtn = el.querySelector('[data-act=close]');
-
-    // If either image fails to load, drop it and reveal the SVG frames, so an
-    // offline player still gets the explanation instead of two empty alt boxes.
-    const imgs = [...el.querySelectorAll('.art img')];
-    const acts = el.querySelector('[data-fallback]');
-    const settle = (img, ok) => {
-      if (ok) return;
-      img.closest('figure').hidden = true;
-      if (acts) acts.hidden = false;
-    };
-    imgs.forEach((img) => {
-      if (img.complete) settle(img, img.naturalWidth > 0);
-      else {
-        img.addEventListener('error', () => settle(img, false), { once: true });
-      }
-    });
 
     this.closeBtn.addEventListener('click', () => this.hide());
     // Backdrop closes; the panel does not.

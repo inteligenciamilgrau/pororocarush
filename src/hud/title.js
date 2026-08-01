@@ -21,20 +21,18 @@
 //  - `#boot` (index.html) tem z-index 100 e se remove sozinho; a abertura fica
 //    em 80, portanto entra por baixo do boot e aparece quando ele sai.
 //  - `#pr-menu` (menu.js) tem z-index 60 e pausa o jogo no ESC. Enquanto a
-//    abertura está visível engolimos ESC/P na fase de captura, e o construtor
-//    marca `pororoca.seen` (a chave que main.js usa para abrir o menu na
-//    primeira visita) — a abertura já ensina os controles no rodapé.
-//    Quem integra pode ainda checar `title.visible` antes de `menu.show()`.
+//    abertura está visível engolimos ESC/P na fase de captura, para que o menu
+//    não abra por baixo dela — e o overlay fica acima dele de qualquer forma.
+//    Quem integra pode checar `title.visible` antes de chamar `menu.show()`.
+//  - `#pr-story` (story.js) tem z-index 140 e abre por cima: `onStory` é
+//    chamado e quem integra decide esconder a abertura ou não. `show()` é
+//    reentrante, então voltar da história e reabrir a tela funciona.
 //  - `#hud-root` e `#pr-lock` são apagados enquanto a abertura está no ar
 //    (`body.pr-title-on`), senão o logo do HUD duplica o logo da abertura.
 
 const STYLE_ID = 'pr-title-style';
 const ROOT_ID = 'pr-title';
 const BODY_CLASS = 'pr-title-on';
-
-// A chave que main.js consulta para abrir o menu de controles na primeira
-// visita. A abertura ocupa esse papel, então marcamos por ela.
-const SEEN_KEY = 'pororoca.seen';
 
 const FADE_MS = 420;
 
@@ -135,9 +133,8 @@ export class TitleScreen {
    * @param {Function} [opts.onStart]  chamado quando o jogador manda começar
    * @param {Function} [opts.onStory]  chamado no botão "A história da pororoca"
    * @param {boolean}  [opts.enabled]  false (modo captura) => nunca constrói nada
-   * @param {boolean}  [opts.suppressFirstRunMenu] marcar `pororoca.seen` (padrão true)
    */
-  constructor({ onStart, onStory, enabled = true, suppressFirstRunMenu = true } = {}) {
+  constructor({ onStart, onStory, enabled = true } = {}) {
     this.enabled = enabled !== false;
     this.onStart = typeof onStart === 'function' ? onStart : () => {};
     this.onStory = typeof onStory === 'function' ? onStory : null;
@@ -153,12 +150,6 @@ export class TitleScreen {
     this.btnStory = null;
 
     if (!this.enabled) return;
-
-    if (suppressFirstRunMenu) {
-      // O menu de controles abre sozinho na primeira visita e cairia por cima
-      // desta tela. A abertura já lista os controles essenciais no rodapé.
-      try { localStorage.setItem(SEEN_KEY, '1'); } catch (_) { /* modo privado */ }
-    }
 
     try {
       this._buildStyle();
@@ -205,15 +196,15 @@ export class TitleScreen {
 #${ROOT_ID} .pr-t-glow{ position:absolute; inset:0; pointer-events:none; }
 #${ROOT_ID} .pr-t-veil{
   background:
-    radial-gradient(ellipse 58% 40% at 50% 43%,
-      rgba(9,5,3,.74) 0%, rgba(9,5,3,.52) 46%, rgba(9,5,3,.16) 74%, rgba(9,5,3,0) 100%),
+    radial-gradient(ellipse 54% 42% at 50% 40%,
+      rgba(9,5,3,.74) 0%, rgba(9,5,3,.52) 48%, rgba(9,5,3,.15) 76%, rgba(9,5,3,0) 100%),
     linear-gradient(180deg,
-      rgba(8,5,3,.52) 0%, rgba(8,5,3,.10) 24%, rgba(8,5,3,.12) 52%,
-      rgba(8,5,3,.62) 84%, rgba(8,5,3,.86) 100%);
+      rgba(8,5,3,.30) 0%, rgba(8,5,3,.05) 22%, rgba(8,5,3,.06) 54%,
+      rgba(8,5,3,.52) 86%, rgba(8,5,3,.78) 100%);
 }
 #${ROOT_ID} .pr-t-vig{
-  background: radial-gradient(ellipse 76% 78% at 50% 50%,
-    rgba(0,0,0,0) 40%, rgba(0,0,0,.30) 74%, rgba(0,0,0,.60) 100%);
+  background: radial-gradient(ellipse 78% 80% at 50% 50%,
+    rgba(0,0,0,0) 44%, rgba(0,0,0,.20) 76%, rgba(0,0,0,.44) 100%);
 }
 /* brilho quente de pôr do sol atrás do logo */
 #${ROOT_ID} .pr-t-glow{
@@ -236,8 +227,11 @@ export class TitleScreen {
 #${ROOT_ID} .pr-t-logo{
   width:min(calc(660 * var(--s)), 86vw, 62vh);
   aspect-ratio:392 / 160;
+  /* halo curto e escuro primeiro: o branco de POROROCA cai em cima da banda
+     clara do céu e sem ele o topo das letras some. */
   filter:
-    drop-shadow(0 calc(6 * var(--s)) calc(14 * var(--s)) rgba(0,0,0,.62))
+    drop-shadow(0 0 calc(7 * var(--s)) rgba(18,9,3,.85))
+    drop-shadow(0 calc(6 * var(--s)) calc(15 * var(--s)) rgba(0,0,0,.66))
     drop-shadow(0 0 calc(46 * var(--s)) rgba(255,122,24,.30));
 }
 #${ROOT_ID} .pr-t-logo svg{ display:block; width:100%; height:100%; overflow:visible; }
@@ -491,12 +485,14 @@ body.${BODY_CLASS} #pr-lock{ display:none !important; }
     }
 
     if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
-      // Foco num botão: deixa a ativação nativa decidir — senão ENTER em
-      // "A história da pororoca" começaria o jogo.
-      const a = document.activeElement;
-      if (a && a.tagName === 'BUTTON' && this.root.contains(a)) return;
       e.preventDefault();
       e.stopPropagation();
+      // Com foco num botão, aciona *aquele* botão — senão ENTER em
+      // "A história da pororoca" começaria o jogo. A ativação é explícita
+      // (não dependemos da ação padrão do navegador, que o preventDefault
+      // acima cancela, então nada dispara duas vezes).
+      const a = document.activeElement;
+      if (a && a.tagName === 'BUTTON' && this.root.contains(a)) { a.click(); return; }
       this._start();
     }
   }

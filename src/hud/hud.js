@@ -77,7 +77,11 @@ const MAP = {
   // The ribbon stands for the *navigable corridor*, not the full bank-to-bank
   // width: normalising a ±60 m buoy course against a 170 m half-river squeezed
   // the whole serpentine into two pixels and the course read as a straight line.
-  corridor: 90,
+  // Metres of lateral offset that fill the ribbon. Sized to the *course*, not to
+  // the river: gates.js swings its buoys ~±34..56 m, so at 55 the serpentine
+  // sweeps the ribbon edge to edge and actually reads. Measured against the full
+  // 170 m half-river the same course was a 2 px wobble on a straight line.
+  corridor: 55,
 };
 
 /**
@@ -103,7 +107,7 @@ const ARROW = {
   // PONTUAÇÃO/COMBO on the left and OBJETIVO/minimapa on the right.
   bandL: [378, 514],
   bandR: [514, 616],
-  labelGap: 52,    // reference px the distance label sits inward of the wedge
+  labelGap: 62,    // reference px the distance label sits inward of the wedge
   showAt: 0.60,    // |ndc.x| that brings the arrow in …
   hideAt: 0.44,    // … and the tighter one that sends it away (hysteresis)
   nearHide: 6,     // metres: you are already in the gate, drop the arrow

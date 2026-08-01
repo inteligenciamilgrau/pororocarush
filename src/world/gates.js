@@ -883,7 +883,7 @@ export class Gates {
         }
 
         // Lamparina — only the gate you are actually going for carries a light.
-        if (g.emph > 0.15 && nl < 4) {
+        if (g.emph > 0.6 && nl < 4) {
           pos.set(0, VIEW.lampY, 0);
           qy.identity();
           sc.set(1, 1, 1);
