@@ -25,6 +25,8 @@ export const DEFAULT_OPTS = {
   camera: 'chase',
   fov: 58,
   renderScale: 1.0,
+  music: true,
+  musicVolume: 0.68,
   showHud: true,
   showTips: true,
 };
@@ -341,6 +343,8 @@ ${sw('autoRecenter', 'Recentralizar sozinho', 'Volta ao enquadramento padrão de
 ${sw('pointerLock', 'Travar o ponteiro', 'Olhar contínuo sem arrastar. ESC libera o cursor')}
 ${rng('fov', 'Campo de visão', 'Maior alarga a cena e exagera a velocidade', 45, 80, 1, (v) => Math.round(v) + '°')}
 ${rng('renderScale', 'Resolução', 'Baixe se o jogo estiver travando', 0.5, 1.0, 0.05, (v) => Math.round(v * 100) + '%')}
+${sw('music', 'Trilha sonora', 'Surf music com guitarrada e percussão amazônica')}
+${rng('musicVolume', 'Volume da música', 'Ajusta só a trilha do jogo', 0, 1, 0.05, (v) => Math.round(v * 100) + '%')}
 ${sw('showHud', 'Mostrar HUD', 'Pontuação, velocidade, checkpoint e minimapa')}`;
 
     this.bodyEl.querySelector('[data-sel=camera]').value = o.camera;
@@ -360,7 +364,7 @@ ${sw('showHud', 'Mostrar HUD', 'Pontuação, velocidade, checkpoint e minimapa')
         const out = this.bodyEl.querySelector(`[data-val="${k}"]`);
         if (out) {
           out.textContent = k === 'fov' ? Math.round(this.opts[k]) + '°'
-            : k === 'renderScale' ? Math.round(this.opts[k] * 100) + '%'
+            : (k === 'renderScale' || k === 'musicVolume') ? Math.round(this.opts[k] * 100) + '%'
             : this.opts[k].toFixed(2) + '×';
         }
         this._commit();

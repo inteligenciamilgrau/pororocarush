@@ -27,6 +27,7 @@ import { Race } from './game/race.js';
 import { Sky } from './gfx/sky.js';
 import { Lighting } from './gfx/lighting.js';
 import { Post } from './gfx/post.js';
+import { PororocaMusic } from './audio/music.js';
 
 import { HUD } from './hud/hud.js';
 import { Menu } from './hud/menu.js';
@@ -113,6 +114,7 @@ export async function boot_() {
   const input = new Input(state, { capture: captureMode });
   ctx.input = input;   // hud/menu.js needs it to arbitrate ESC vs pointer lock
   const hud = new HUD(document.getElementById('hud-root'), state, bus, CONFIG);
+  const music = captureMode ? null : new PororocaMusic(ctx);
 
   // Options menu. Skipped entirely under capture so screenshots are never
   // paused behind an overlay.
@@ -132,6 +134,7 @@ export async function boot_() {
         onResize();   // pixel ratio only takes effect on the next setSize
         const hudRoot = document.getElementById('hud-root');
         if (hudRoot) hudRoot.style.display = o.showHud ? '' : 'none';
+        music?.set({ enabled: o.music, volume: o.musicVolume });
       },
     });
   }
@@ -139,6 +142,7 @@ export async function boot_() {
   // Order matters: input → physics → tricks → scoring/race → world → visuals.
   const simSystems = [physics, tricks, gates, scoring, race, obstacles];
   const viewSystems = [waveMesh, river, scenery, surfer, foam, sky, lighting, rig, post, hud];
+  if (music) viewSystems.push(music);
 
   // ------------------------------------------------------------- simulation
   const FIXED = CONFIG.physics.fixedStep;
@@ -175,6 +179,7 @@ export async function boot_() {
     rafId = requestAnimationFrame(frame);
     const dtReal = Math.min((now - last) / 1000, 0.1);
     last = now;
+    music?.setPaused(state.paused);
     if (state.paused) return;
     stepFixed(dtReal);
     updateView(dtReal);
@@ -216,6 +221,7 @@ export async function boot_() {
     const story = new StoryScreen({ onClose: () => title.show() });
     const title = new TitleScreen({
       onStart: () => {
+        music?.start();
         state.paused = false;
         // Controls are a lot to remember, and a surf game is unplayable if you
         // never learn to pump and tuck — so show them once, on the first run only.
@@ -231,7 +237,7 @@ export async function boot_() {
     window.PR_UI = { title, story, menu };
   }
 
-  window.PR = { ctx, state, bore, physics, tricks, gates, rig, hud, post, renderer, scene, camera,
+  window.PR = { ctx, state, bore, physics, tricks, gates, rig, hud, post, music, renderer, scene, camera,
                 pause: () => { state.paused = true; }, resume: () => { state.paused = false; },
                 stop: () => cancelAnimationFrame(rafId) };
   return window.PR;
